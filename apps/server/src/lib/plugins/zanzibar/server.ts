@@ -4,9 +4,8 @@ import { initializePolicyEngine, policyEngineInstance } from "./policy-engine";
 import type { ResourcePolicies } from "./types";
 
 export const ZanzibarServerPlugin = (policies?: ResourcePolicies) => {
-  const pluginId = "nexus-plugin";
+  const pluginId = "zanzibar-plugin";
 
-  // Initialize Nexus instance if policies are provided
   if (policies && !policyEngineInstance) {
     initializePolicyEngine(policies);
   }
@@ -16,30 +15,30 @@ export const ZanzibarServerPlugin = (policies?: ResourcePolicies) => {
     endpoints: {
       // Health check endpoint
       ping: createAuthEndpoint(
-        "/nexus/ping",
+        "/zanzibar/ping",
         { method: "GET" },
         async (ctx) => {
           return ctx.json({
             status: "ok",
             plugin: pluginId,
-            nexus_initialized: !!policyEngineInstance,
+            zanzibar_initialized: !!policyEngineInstance,
           });
         }
       ),
 
       // Authorization check endpoint
       check: createAuthEndpoint(
-        "/nexus/check",
+        "/zanzibar/check",
         { method: "POST", use: [sessionMiddleware] },
         async (ctx) => {
           try {
             const body = await ctx.request?.json();
-            const { userId, action, resourceType, resourceId } = body;
-            const session = ctx.context.session;
+            const { action, resourceType, resourceId } = body;
+            const userId = ctx.context.session?.user.id;
 
             if (!policyEngineInstance) {
               return ctx.json(
-                { error: "Nexus not initialized with policies" },
+                { error: "Zanzibar not initialized with policies" },
                 { status: 500 }
               );
             }
@@ -63,24 +62,19 @@ export const ZanzibarServerPlugin = (policies?: ResourcePolicies) => {
 
       // Detailed authorization check endpoint
       checkDetailed: createAuthEndpoint(
-        "/nexus/check-detailed",
-        { method: "POST" },
+        "/zanzibar/check-detailed",
+        { method: "POST", use: [sessionMiddleware] },
         async (ctx) => {
           try {
             const body = await ctx.request?.json();
-            const {
-              userId,
-              action,
-              resourceType,
-              resourceId,
-              options = {},
-            } = body;
+            const { action, resourceType, resourceId, options = {} } = body;
+            const userId = ctx.context.session?.user.id;
 
-            if (!userId || !action || !resourceType || !resourceId) {
+            if (!action || !resourceType || !resourceId) {
               return ctx.json(
                 {
                   error:
-                    "Missing required fields: userId, action, resourceType, resourceId",
+                    "Missing required fields: action, resourceType, resourceId",
                 },
                 { status: 400 }
               );
@@ -88,7 +82,7 @@ export const ZanzibarServerPlugin = (policies?: ResourcePolicies) => {
 
             if (!policyEngineInstance) {
               return ctx.json(
-                { error: "Nexus not initialized with policies" },
+                { error: "Zanzibar not initialized with policies" },
                 { status: 500 }
               );
             }
@@ -114,7 +108,7 @@ export const ZanzibarServerPlugin = (policies?: ResourcePolicies) => {
   } satisfies BetterAuthPlugin;
 };
 
-export type { PolicyEngine as Nexus } from "./policy-engine";
+export type { PolicyEngine } from "./policy-engine";
 export type {
   AuthorizationResult,
   PolicyFunction,
