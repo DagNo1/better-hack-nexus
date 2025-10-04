@@ -1,13 +1,9 @@
 import { type BetterAuthPlugin } from "better-auth";
 import { createAuthEndpoint, sessionMiddleware } from "better-auth/api";
-import {
-  initializePolicyEngine,
-  PolicyEngine,
-  policyEngineInstance,
-} from "./policy-engine";
+import { initializePolicyEngine, policyEngineInstance } from "./policy-engine";
 import type { ResourcePolicies } from "./types";
 
-export const NexusServerPlugin = (policies?: ResourcePolicies) => {
+export const ZanzibarServerPlugin = (policies?: ResourcePolicies) => {
   const pluginId = "nexus-plugin";
 
   // Initialize Nexus instance if policies are provided

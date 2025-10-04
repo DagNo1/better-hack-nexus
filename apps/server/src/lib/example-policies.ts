@@ -1,4 +1,4 @@
-import type { ResourcePolicies } from "./plugins/nexus";
+import type { ResourcePolicies } from "./plugins/zanzibar";
 
 export const examplePolicies: ResourcePolicies = {
   document: {
