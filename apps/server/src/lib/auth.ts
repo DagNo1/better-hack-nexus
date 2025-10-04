@@ -1,7 +1,8 @@
 import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import prisma from "../db";
-import { NexusPlugin } from "./plugins/nexsus";
+import { NexusServerPlugin } from "./plugins/nexus/server";
+import { examplePolicies } from "./example-policies";
 
 export const auth = betterAuth<BetterAuthOptions>({
   database: prismaAdapter(prisma, {
@@ -18,5 +19,5 @@ export const auth = betterAuth<BetterAuthOptions>({
       httpOnly: true,
     },
   },
-  plugins: [NexusPlugin()],
+  plugins: [NexusServerPlugin(examplePolicies)],
 });
