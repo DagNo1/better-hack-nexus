@@ -1,4 +1,6 @@
 "use client";
+import { authClient } from "@/lib/auth-client";
+import { trpc } from "@/utils/trpc";
 import {
   RedirectToSignIn,
   SignedIn,
@@ -8,7 +10,16 @@ import {
 import { useRouter } from "next/navigation";
 
 export default function Home() {
-  const { push } = useRouter();
+  const result = authClient.zanzibar.checkDetailed({
+    action: "read",
+    resourceType: "user",
+    resourceId: "1",
+    options: {
+      include_details: true,
+    },
+  });
+
+  const todo = trpc.todo.getAll.queryOptions();
   return (
     <div className="flex flex-col items-center justify-center h-screen w-full">
       <div className="flex justify-center my-8">

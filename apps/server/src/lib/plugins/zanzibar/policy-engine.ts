@@ -1,8 +1,7 @@
 import type {
-  ResourcePolicies,
   AuthorizationResult,
   PolicyEvaluationOptions,
-  PolicyFunction,
+  ResourcePolicies,
 } from "./types";
 
 // Global policy engine instance
@@ -55,7 +54,16 @@ export class PolicyEngine {
   ): Promise<AuthorizationResult> {
     try {
       // Get the policy function for this resource type and action
-      const policyFunction = this.getPolicyFunction(resourceType, action);
+
+      const resourcePolicies = this.policies[resourceType];
+      if (!resourcePolicies) {
+        return {
+          allowed: false,
+          reason: `Resource '${resourceType}' Not found'`,
+        };
+      }
+
+      const policyFunction = resourcePolicies[action] || null;
 
       if (!policyFunction) {
         return {
@@ -63,7 +71,6 @@ export class PolicyEngine {
           reason: `No policy found for action '${action}' on resource type '${resourceType}'`,
         };
       }
-
       // Evaluate the policy function with just userId and resourceId
       const allowed = policyFunction(userId, resourceId);
 
@@ -95,20 +102,5 @@ export class PolicyEngine {
         }`,
       };
     }
-  }
-
-  /**
-   * Get policy function for a specific resource type and action
-   */
-  private getPolicyFunction(
-    resourceType: string,
-    action: string
-  ): PolicyFunction | null {
-    const resourcePolicies = this.policies[resourceType];
-    if (!resourcePolicies) {
-      return null;
-    }
-
-    return resourcePolicies[action] || null;
   }
 }
