@@ -1,9 +1,15 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { ThemeProvider as NextThemesProvider } from "next-themes"
+import { AuthUIProvider } from "@daveyplate/better-auth-ui";
+import { ThemeProvider as NextThemesProvider } from "next-themes";
+import Link from "next/link";
 
-export function Providers({ children }: { children: React.ReactNode }) {
+import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
+import type { ReactNode } from "react";
+
+export function Providers({ children }: { children: ReactNode }) {
+  const router = useRouter();
   return (
     <NextThemesProvider
       attribute="class"
@@ -12,7 +18,18 @@ export function Providers({ children }: { children: React.ReactNode }) {
       disableTransitionOnChange
       enableColorScheme
     >
-      {children}
+      <AuthUIProvider
+        authClient={authClient}
+        navigate={router.push}
+        replace={router.replace}
+        onSessionChange={() => {
+          // Clear router cache (protected routes)
+          router.refresh();
+        }}
+        Link={Link}
+      >
+        {children}
+      </AuthUIProvider>
     </NextThemesProvider>
-  )
+  );
 }
