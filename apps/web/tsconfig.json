@@ -2,7 +2,11 @@
   "extends": "@workspace/typescript-config/nextjs.json",
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -21,17 +25,24 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"],
-      "@workspace/ui/*": ["../../packages/ui/src/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@workspace/ui/*": [
+        "../../packages/ui/src/*"
+      ]
     }
   },
   "include": [
-    "./next-env.d.ts",
     "./**/*.ts",
     "./**/*.tsx",
-    "./.next/types/**/*.ts"
+    "./.next/types/**/*.ts",
+    "./next-env.d.ts",
+    ".next/types/**/*.ts"
   ],
-  "exclude": ["./node_modules"],
+  "exclude": [
+    "./node_modules"
+  ],
   "references": [
     {
       "path": "../server"
