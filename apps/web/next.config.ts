@@ -1,7 +1,6 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-	typedRoutes: true,
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  transpilePackages: ["@workspace/ui"],
 };
 
 export default nextConfig;
