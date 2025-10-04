@@ -1,0 +1,217 @@
+"use client";
+
+import {
+  useCreateProject,
+  useGetProjects,
+  useUpdateProject,
+} from "@/hooks/project";
+import { Button } from "@workspace/ui/components/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@workspace/ui/components/card";
+import { Skeleton } from "@workspace/ui/components/skeleton";
+import { Plus } from "lucide-react";
+import { useState } from "react";
+import { ProjectCard } from "../../components/cards/project-card";
+import { DeleteProjectDialog } from "../forms/delete-project-dialog";
+import { ProjectForm } from "../forms/project-form";
+
+interface Project {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  files?: any[];
+  folders?: any[];
+}
+
+// Loading skeleton for project cards
+function ProjectCardSkeleton() {
+  return (
+    <Card>
+      <CardHeader>
+        <Skeleton className="h-6 w-3/4" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-2/3" />
+      </CardHeader>
+      <CardContent>
+        <Skeleton className="h-4 w-1/2" />
+      </CardContent>
+    </Card>
+  );
+}
+
+// Empty state component
+function EmptyProjectsState({ onCreateProject }: { onCreateProject: () => void }) {
+  return (
+    <div className="text-center py-12">
+      <Card className="max-w-md mx-auto">
+        <CardHeader>
+          <CardTitle className="text-xl">No projects yet</CardTitle>
+          <CardDescription>
+            Get started by creating your first project to organize your work.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button onClick={onCreateProject} className="w-full">
+            <Plus className="h-4 w-4 mr-2" />
+            Create Your First Project
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+export function ProjectsList() {
+  const { data: projects, isLoading, error } = useGetProjects();
+  const createProject = useCreateProject();
+  const updateProject = useUpdateProject();
+
+  const [showForm, setShowForm] = useState(false);
+  const [formMode, setFormMode] = useState<"create" | "edit">("create");
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [deletingProject, setDeletingProject] = useState<Project | null>(null);
+
+  const handleCreateProject = () => {
+    setFormMode("create");
+    setEditingProject(null);
+    setShowForm(true);
+  };
+
+  const handleEditProject = (project: Project) => {
+    setFormMode("edit");
+    setEditingProject(project);
+    setShowForm(true);
+  };
+
+  const handleDeleteProject = (projectId: string) => {
+    const project = projects?.find((p) => p.id === projectId);
+    if (project) {
+      setDeletingProject(project);
+    }
+  };
+
+  const handleFormSubmit = async (data: { name: string }) => {
+    if (formMode === "create") {
+      await new Promise<void>((resolve, reject) => {
+        createProject.mutate(data, {
+          onSuccess: () => resolve(),
+          onError: (error) => reject(error),
+        });
+      });
+    } else if (formMode === "edit" && editingProject) {
+      await new Promise<void>((resolve, reject) => {
+        updateProject.mutate(
+          { id: editingProject.id, name: data.name },
+          {
+            onSuccess: () => resolve(),
+            onError: (error) => reject(error),
+          }
+        );
+      });
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold">Projects</h2>
+          <Button onClick={handleCreateProject}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Project
+          </Button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <ProjectCardSkeleton key={index} />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold">Projects</h2>
+          <Button onClick={handleCreateProject}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Project
+          </Button>
+        </div>
+        <div className="text-center py-12">
+          <Card className="max-w-md mx-auto">
+            <CardHeader>
+              <CardTitle className="text-red-600">
+                Error loading projects
+              </CardTitle>
+              <CardDescription>
+                There was a problem loading your projects. Please try again
+                later.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (!projects || projects.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold">Projects</h2>
+          <Button onClick={handleCreateProject}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Project
+          </Button>
+        </div>
+        <EmptyProjectsState onCreateProject={handleCreateProject} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Projects</h2>
+        <Button onClick={handleCreateProject}>
+          <Plus className="h-4 w-4 mr-2" />
+          New Project
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {projects.map((project) => (
+          <ProjectCard
+            key={project.id}
+            project={project}
+            onEdit={handleEditProject}
+            onDelete={handleDeleteProject}
+          />
+        ))}
+      </div>
+
+      <ProjectForm
+        mode={formMode}
+        project={editingProject}
+        open={showForm}
+        onOpenChange={setShowForm}
+        onSubmit={handleFormSubmit}
+        isLoading={createProject.isPending || updateProject.isPending}
+      />
+      <DeleteProjectDialog
+        project={deletingProject}
+        open={!!deletingProject}
+        onOpenChange={(open) => !open && setDeletingProject(null)}
+      />
+    </div>
+  );
+}

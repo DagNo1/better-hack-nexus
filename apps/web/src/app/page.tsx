@@ -5,21 +5,42 @@ import {
   SignedOut,
   UserButton,
 } from "@daveyplate/better-auth-ui";
-import { useRouter } from "next/navigation";
+import { ProjectsList } from "@/layouts/home/projects-list";
 
 export default function Home() {
-  const { push } = useRouter();
   return (
-    <div className="flex flex-col items-center justify-center h-screen w-full">
-      <div className="flex justify-center my-8">
-        <RedirectToSignIn />
+    <div className="min-h-screen bg-background w-3xl">
+      {/* Header */}
+      <header className="border-b">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <SignedIn>
+              <UserButton className="bg-background text-white hover:bg-primary/10" />
+            </SignedIn>
+            <SignedOut>
+              <RedirectToSignIn />
+            </SignedOut>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="w-full mx-auto px-4 py-8">
         <SignedIn>
-          <UserButton />
+          <ProjectsList />
         </SignedIn>
         <SignedOut>
-          <RedirectToSignIn />
+          <div className="flex flex-col items-center justify-center h-96 text-center">
+            <h2 className="text-xl font-semibold mb-4">
+              Welcome to Better Hack Nexus
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              Please sign in to view your projects
+            </p>
+            <RedirectToSignIn />
+          </div>
         </SignedOut>
-      </div>
+      </main>
     </div>
   );
 }
