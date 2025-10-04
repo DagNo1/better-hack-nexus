@@ -12,7 +12,7 @@
 			"prisma": ["node_modules/prisma"]
 		},
 		"outDir": "./dist",
-		"types": ["bun"],
+		"types": ["node"],
 		"composite": true,
 		"jsx": "react-jsx"
 	}

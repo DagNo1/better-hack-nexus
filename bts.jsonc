@@ -4,11 +4,11 @@
 {
   "$schema": "https://r2.better-t-stack.dev/schema.json",
   "version": "2.50.0",
-  "createdAt": "2025-10-04T15:54:33.856Z",
+  "createdAt": "2025-10-04T16:06:37.705Z",
   "database": "postgres",
   "orm": "prisma",
   "backend": "elysia",
-  "runtime": "bun",
+  "runtime": "node",
   "frontend": [
     "next"
   ],
@@ -19,7 +19,7 @@
     "todo"
   ],
   "auth": "better-auth",
-  "packageManager": "bun",
+  "packageManager": "pnpm",
   "dbSetup": "neon",
   "api": "trpc",
   "webDeploy": "none",

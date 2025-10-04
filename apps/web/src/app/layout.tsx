@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-	title: "better-hack-nexus",
-	description: "better-hack-nexus",
+	title: "better-hack-nexus2",
+	description: "better-hack-nexus2",
 };
 
 export default function RootLayout({

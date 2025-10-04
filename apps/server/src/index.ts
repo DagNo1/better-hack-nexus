@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { node } from "@elysiajs/node";
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { createContext } from "./lib/context";
@@ -6,7 +7,7 @@ import { appRouter } from "./routers/index";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { auth } from "./lib/auth";
 
-const app = new Elysia()
+const app = new Elysia({ adapter: node() })
 	.use(
 		cors({
 			origin: process.env.CORS_ORIGIN || "",
