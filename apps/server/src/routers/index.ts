@@ -1,16 +1,22 @@
 import { protectedProcedure, publicProcedure, router } from "../lib/trpc";
+import { fileRouter } from "./file";
+import { folderRouter } from "./folder";
+import { projectRouter } from "./project";
 import { todoRouter } from "./todo";
 
 export const appRouter = router({
-	healthCheck: publicProcedure.query(() => {
-		return "OK";
-	}),
-	privateData: protectedProcedure.query(({ ctx }) => {
-		return {
-			message: "This is private",
-			user: ctx.session.user,
-		};
-	}),
-	todo: todoRouter,
+  healthCheck: publicProcedure.query(() => {
+    return "OK";
+  }),
+  privateData: protectedProcedure.query(({ ctx }) => {
+    return {
+      message: "This is private",
+      user: ctx.session.user,
+    };
+  }),
+  todo: todoRouter,
+  project: projectRouter,
+  folder: folderRouter,
+  file: fileRouter,
 });
 export type AppRouter = typeof appRouter;
