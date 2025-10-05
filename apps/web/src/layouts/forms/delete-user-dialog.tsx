@@ -1,59 +1,59 @@
 "use client";
 
-import { useDeleteProject } from "@/hooks/project";
+import { useDeleteUser } from "@/hooks/user";
 import { Button } from "@workspace/ui/components/button";
 import { AlertTriangle } from "lucide-react";
-import type { Project } from "@/types/project";
+import type { User } from "@/types/project";
 import { toast } from "sonner";
 
-interface DeleteProjectDialogProps {
-  project: Project | null;
+interface DeleteUserDialogProps {
+  user: User | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function DeleteProjectDialog({
-  project,
+export function DeleteUserDialog({
+  user,
   open,
   onOpenChange,
-}: DeleteProjectDialogProps) {
-  const deleteProject = useDeleteProject();
+}: DeleteUserDialogProps) {
+  const deleteUser = useDeleteUser();
 
   const handleDelete = () => {
-    if (!project) return;
+    if (!user) return;
 
-    deleteProject.mutate(
-      { id: project.id },
+    deleteUser.mutate(
+      { id: user.id },
       {
         onSuccess: () => {
-          toast.success("Project deleted successfully!");
+          toast.success("User deleted successfully!");
           onOpenChange(false);
         },
         onError: (error) => {
-          console.error("Delete project error:", error);
-          toast.error("Failed to delete project. Please try again.");
+          console.error("Delete User error:", error);
+          toast.error("Failed to delete user. Please try again.");
         },
       }
     );
   };
 
-  if (!project || !open) return null;
+  if (!user || !open) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-background p-6 rounded-lg max-w-md w-full mx-4 border border-border">
         <div className="flex items-center gap-2 mb-4">
           <AlertTriangle className="h-5 w-5 text-destructive" />
-          <h2 className="text-xl font-bold">Delete Project</h2>
+          <h2 className="text-xl font-bold">Delete User</h2>
         </div>
         <p className="mb-4">
-          Are you sure you want to delete the project "{project.name}"? This
-          action cannot be undone.
+          Are you sure you want to delete the user "{user.name}"? This action
+          cannot be undone.
         </p>
         <div className="bg-muted p-3 rounded-md mb-4">
-          <p className="text-sm font-medium">{project.name}</p>
+          <p className="text-sm font-medium">{user.name}</p>
           <p className="text-xs text-muted-foreground">
-            Created: {new Date(project.createdAt).toLocaleDateString()}
+            Created: {new Date(user.createdAt).toLocaleDateString()}
           </p>
         </div>
         <div className="flex gap-2 justify-end">
@@ -63,9 +63,9 @@ export function DeleteProjectDialog({
           <Button
             variant="destructive"
             onClick={handleDelete}
-            disabled={deleteProject.isPending}
+            disabled={deleteUser.isPending}
           >
-            {deleteProject.isPending ? "Deleting..." : "Delete Project"}
+            {deleteUser.isPending ? "Deleting..." : "Delete User"}
           </Button>
         </div>
       </div>

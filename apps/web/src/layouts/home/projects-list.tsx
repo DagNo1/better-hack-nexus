@@ -19,15 +19,8 @@ import { useState } from "react";
 import { ProjectCard } from "../../components/cards/project-card";
 import { DeleteProjectDialog } from "../forms/delete-project-dialog";
 import { ProjectForm } from "../forms/project-form";
-
-interface Project {
-  id: string;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
-  files?: any[];
-  folders?: any[];
-}
+import type { Project, ProjectFormData } from "@/types/project";
+import { toast } from "sonner";
 
 // Loading skeleton for project cards
 function ProjectCardSkeleton() {
@@ -46,7 +39,11 @@ function ProjectCardSkeleton() {
 }
 
 // Empty state component
-function EmptyProjectsState({ onCreateProject }: { onCreateProject: () => void }) {
+function EmptyProjectsState({
+  onCreateProject,
+}: {
+  onCreateProject: () => void;
+}) {
   return (
     <div className="text-center py-12">
       <Card className="max-w-md mx-auto">
@@ -74,18 +71,18 @@ export function ProjectsList() {
 
   const [showForm, setShowForm] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
 
   const handleCreateProject = () => {
     setFormMode("create");
-    setEditingProject(null);
+    setCurrentProject(null);
     setShowForm(true);
   };
 
   const handleEditProject = (project: Project) => {
     setFormMode("edit");
-    setEditingProject(project);
+    setCurrentProject(project);
     setShowForm(true);
   };
 
@@ -96,24 +93,26 @@ export function ProjectsList() {
     }
   };
 
-  const handleFormSubmit = async (data: { name: string }) => {
-    if (formMode === "create") {
-      await new Promise<void>((resolve, reject) => {
-        createProject.mutate(data, {
-          onSuccess: () => resolve(),
-          onError: (error) => reject(error),
+  const handleFormSubmit = async (data: ProjectFormData) => {
+    try {
+      if (formMode === "create") {
+        await createProject.mutateAsync(data);
+        toast.success("Project created successfully!");
+      } else if (formMode === "edit" && currentProject) {
+        await updateProject.mutateAsync({
+          id: currentProject.id,
+          name: data.name,
         });
-      });
-    } else if (formMode === "edit" && editingProject) {
-      await new Promise<void>((resolve, reject) => {
-        updateProject.mutate(
-          { id: editingProject.id, name: data.name },
-          {
-            onSuccess: () => resolve(),
-            onError: (error) => reject(error),
-          }
-        );
-      });
+        toast.success("Project updated successfully!");
+      }
+    } catch (error) {
+      console.error("Form submission error:", error);
+      toast.error(
+        formMode === "create"
+          ? "Failed to create project. Please try again."
+          : "Failed to update project. Please try again."
+      );
+      throw error;
     }
   };
 
@@ -174,6 +173,20 @@ export function ProjectsList() {
           </Button>
         </div>
         <EmptyProjectsState onCreateProject={handleCreateProject} />
+
+        <ProjectForm
+          mode={formMode}
+          project={currentProject}
+          open={showForm}
+          onOpenChange={setShowForm}
+          onSubmit={handleFormSubmit}
+          isLoading={createProject.isPending || updateProject.isPending}
+        />
+        <DeleteProjectDialog
+          project={deletingProject}
+          open={!!deletingProject}
+          onOpenChange={(open) => !open && setDeletingProject(null)}
+        />
       </div>
     );
   }
@@ -201,7 +214,7 @@ export function ProjectsList() {
 
       <ProjectForm
         mode={formMode}
-        project={editingProject}
+        project={currentProject}
         open={showForm}
         onOpenChange={setShowForm}
         onSubmit={handleFormSubmit}

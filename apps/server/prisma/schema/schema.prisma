@@ -16,31 +16,22 @@ model Project {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  files   File[]
+  users   User[]
   folders Folder[]
 }
 
 model Folder {
-  id        String   @id @map("_id")
+  id        String   @id @default(cuid()) @map("_id")
   name      String
-  createdAt DateTime
-  updatedAt DateTime
-  projectId String?
-
-  project Project? @relation(fields: [projectId], references: [id])
-  files   File[]
-}
-
-model File {
-  id        String   @id @map("_id")
-  name      String
-  projectId String?
-  folderId  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  projectId String?
+  parentId  String?  @map("parent_id")
 
-  project Project? @relation(fields: [projectId], references: [id])
-  folder  Folder?  @relation(fields: [folderId], references: [id])
+  users     User[]
+  project   Project?  @relation(fields: [projectId], references: [id])
+  parent    Folder?   @relation("FolderChildren", fields: [parentId], references: [id])
+  children  Folder[]  @relation("FolderChildren")
 
-  @@map("files")
+  @@map("folders")
 }

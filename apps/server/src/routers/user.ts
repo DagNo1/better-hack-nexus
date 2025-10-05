@@ -58,6 +58,7 @@ export const userRouter = router({
 				email: z.string().email("Invalid email address"),
 				emailVerified: z.boolean().optional(),
 				image: z.string().optional(),
+				role: z.string().optional(),
 			})
 		)
 		.mutation(async ({ input }) => {
@@ -68,6 +69,7 @@ export const userRouter = router({
 						email: input.email,
 						emailVerified: input.emailVerified || false,
 						image: input.image,
+						role: input.role,
 					},
 					select: {
 						id: true,
@@ -75,6 +77,7 @@ export const userRouter = router({
 						email: true,
 						emailVerified: true,
 						image: true,
+						role: true,
 						createdAt: true,
 						updatedAt: true,
 					},
