@@ -5,6 +5,8 @@ import type {
   Resources,
   ResourceRoleResponse,
   UserRoleResponse,
+  UserResourceMatrix,
+  UserResourceMatrixEntry,
 } from "./types";
 
 // Global policy engine instance
@@ -274,5 +276,66 @@ export class PolicyEngine {
     }
 
     return allUserRoles;
+  }
+
+  /**
+   * Get user-resource matrix for all users and resources
+   * This method requires a list of users and resources to check
+   */
+  async getUserResourceMatrix(
+    userIds: string[],
+    resources: Array<{ resourceType: string; resourceId: string }>
+  ): Promise<UserResourceMatrix> {
+    const matrix: UserResourceMatrixEntry[] = [];
+
+    // Check each user against each resource
+    for (const userId of userIds) {
+      for (const resource of resources) {
+        const userRoles = await this.getUserRoles(
+          userId,
+          resource.resourceType,
+          resource.resourceId
+        );
+
+        if (userRoles) {
+          matrix.push({
+            userId,
+            resourceType: resource.resourceType,
+            resourceId: resource.resourceId,
+            roles: userRoles.roles,
+          });
+        }
+      }
+    }
+
+    return {
+      users: userIds,
+      resources,
+      matrix,
+    };
+  }
+
+  /**
+   * Get user-resource matrix for all users and all possible resources
+   * This is a more comprehensive version that checks against all resource types
+   * Note: This requires knowing all possible resource IDs for each type
+   */
+  async getAllUserResourceMatrix(
+    userIds: string[],
+    resourceIdsByType: Record<string, string[]>
+  ): Promise<UserResourceMatrix> {
+    const allResources: Array<{ resourceType: string; resourceId: string }> =
+      [];
+
+    // Build the complete list of resources to check
+    for (const [resourceType, resourceIds] of Object.entries(
+      resourceIdsByType
+    )) {
+      for (const resourceId of resourceIds) {
+        allResources.push({ resourceType, resourceId });
+      }
+    }
+
+    return this.getUserResourceMatrix(userIds, allResources);
   }
 }
