@@ -2,14 +2,12 @@ import { trpc } from "@/utils/trpc";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-
 // Query hooks
 export const useGetProjects = () =>
   useQuery(trpc.project.getAll.queryOptions());
 
 export const useGetProjectById = (id: string) =>
   useQuery(trpc.project.getById.queryOptions({ id }));
-
 
 // Mutation hooks
 export const useCreateProject = () => {
@@ -19,6 +17,12 @@ export const useCreateProject = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: trpc.project.getAll.queryKey(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: trpc.folder.getAll.queryKey(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: trpc.folder.getById.queryKey(),
       });
       toast.success("Project created successfully");
     },
@@ -59,3 +63,49 @@ export const useDeleteProject = () => {
     },
   });
 };
+
+// User management hooks for projects
+export const useAddUserToProject = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    ...trpc.project.addUser.mutationOptions(),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: trpc.project.getUsers.queryKey({
+          projectId: variables.projectId,
+        }),
+      });
+      queryClient.invalidateQueries({
+        queryKey: trpc.project.getAll.queryKey(),
+      });
+      toast.success("User added to project successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to add user to project");
+    },
+  });
+};
+
+export const useRemoveUserFromProject = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    ...trpc.project.removeUser.mutationOptions(),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: trpc.project.getUsers.queryKey({
+          projectId: variables.projectId,
+        }),
+      });
+      queryClient.invalidateQueries({
+        queryKey: trpc.project.getAll.queryKey(),
+      });
+      toast.success("User removed from project successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to remove user from project");
+    },
+  });
+};
+
+export const useGetProjectUsers = (projectId: string) =>
+  useQuery(trpc.project.getUsers.queryOptions({ projectId }));

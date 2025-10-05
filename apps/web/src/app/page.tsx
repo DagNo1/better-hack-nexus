@@ -9,7 +9,8 @@ import { ProjectsList } from "@/layouts/home/projects-list";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-background w-3xl">
+    <div className="min-h-screen bg-transparent w-3xl relative">
+   
       {/* Header */}
       <header className="border-b">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">

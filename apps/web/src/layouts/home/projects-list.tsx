@@ -1,10 +1,15 @@
 "use client";
 
+import { UserManagementDialog } from "@/components/dialogs/user-management-dialog";
 import {
+  useAddUserToProject,
   useCreateProject,
   useGetProjects,
+  useGetProjectUsers,
+  useRemoveUserFromProject,
   useUpdateProject,
 } from "@/hooks/project";
+import type { Project, ProjectFormData } from "@/types/project";
 import { Button } from "@workspace/ui/components/button";
 import {
   Card,
@@ -14,20 +19,12 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card";
 import { Skeleton } from "@workspace/ui/components/skeleton";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { ProjectCard } from "../../components/cards/project-card";
 import { DeleteProjectDialog } from "../forms/delete-project-dialog";
 import { ProjectForm } from "../forms/project-form";
-
-interface Project {
-  id: string;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
-  files?: any[];
-  folders?: any[];
-}
 
 // Loading skeleton for project cards
 function ProjectCardSkeleton() {
@@ -46,10 +43,14 @@ function ProjectCardSkeleton() {
 }
 
 // Empty state component
-function EmptyProjectsState({ onCreateProject }: { onCreateProject: () => void }) {
+function EmptyProjectsState({
+  onCreateProject,
+}: {
+  onCreateProject: () => void;
+}) {
   return (
     <div className="text-center py-12">
-      <Card className="max-w-md mx-auto">
+      <Card className="max-w-md mx-auto border-none bg-transparent">
         <CardHeader>
           <CardTitle className="text-xl">No projects yet</CardTitle>
           <CardDescription>
@@ -68,24 +69,38 @@ function EmptyProjectsState({ onCreateProject }: { onCreateProject: () => void }
 }
 
 export function ProjectsList() {
-  const { data: projects, isLoading, error } = useGetProjects();
+  const { data: projects, isLoading } = useGetProjects();
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
 
   const [showForm, setShowForm] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
+  const [showUserManagement, setShowUserManagement] = useState(false);
+  const [selectedProjectForUsers, setSelectedProjectForUsers] =
+    useState<Project | null>(null);
+
+  // User management hooks
+  const addUserToProject = useAddUserToProject();
+  const removeUserFromProject = useRemoveUserFromProject();
+  const { data: projectUsers = [] } = useGetProjectUsers(
+    selectedProjectForUsers?.id || ""
+  );
 
   const handleCreateProject = () => {
     setFormMode("create");
-    setEditingProject(null);
+    setCurrentProject(null);
     setShowForm(true);
+  };
+
+  const handleSelectProject = (project: Project) => {
+    setCurrentProject(project);
   };
 
   const handleEditProject = (project: Project) => {
     setFormMode("edit");
-    setEditingProject(project);
+    setCurrentProject(project);
     setShowForm(true);
   };
 
@@ -96,25 +111,47 @@ export function ProjectsList() {
     }
   };
 
-  const handleFormSubmit = async (data: { name: string }) => {
-    if (formMode === "create") {
-      await new Promise<void>((resolve, reject) => {
-        createProject.mutate(data, {
-          onSuccess: () => resolve(),
-          onError: (error) => reject(error),
+  const handleFormSubmit = async (data: ProjectFormData) => {
+    try {
+      if (formMode === "create") {
+        await createProject.mutateAsync(data);
+        toast.success("Project created successfully!");
+      } else if (formMode === "edit" && currentProject) {
+        await updateProject.mutateAsync({
+          id: currentProject.id,
+          name: data.name,
         });
-      });
-    } else if (formMode === "edit" && editingProject) {
-      await new Promise<void>((resolve, reject) => {
-        updateProject.mutate(
-          { id: editingProject.id, name: data.name },
-          {
-            onSuccess: () => resolve(),
-            onError: (error) => reject(error),
-          }
-        );
-      });
+        toast.success("Project updated successfully!");
+      }
+    } catch (error) {
+      console.error("Form submission error:", error);
+      toast.error(
+        formMode === "create"
+          ? "Failed to create project. Please try again."
+          : "Failed to update project. Please try again."
+      );
+      throw error;
     }
+  };
+  const handleManageUsers = (project: Project) => {
+    setSelectedProjectForUsers(project);
+    setShowUserManagement(true);
+  };
+
+  const handleAddUserToProject = async (userId: string) => {
+    if (!selectedProjectForUsers?.id) return;
+    await addUserToProject.mutateAsync({
+      projectId: selectedProjectForUsers.id,
+      userId,
+    });
+  };
+
+  const handleRemoveUserFromProject = async (userId: string) => {
+    if (!selectedProjectForUsers?.id) return;
+    await removeUserFromProject.mutateAsync({
+      projectId: selectedProjectForUsers.id,
+      userId,
+    });
   };
 
   if (isLoading) {
@@ -136,33 +173,6 @@ export function ProjectsList() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold">Projects</h2>
-          <Button onClick={handleCreateProject}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Project
-          </Button>
-        </div>
-        <div className="text-center py-12">
-          <Card className="max-w-md mx-auto">
-            <CardHeader>
-              <CardTitle className="text-red-600">
-                Error loading projects
-              </CardTitle>
-              <CardDescription>
-                There was a problem loading your projects. Please try again
-                later.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
   if (!projects || projects.length === 0) {
     return (
       <div className="space-y-6">
@@ -174,6 +184,20 @@ export function ProjectsList() {
           </Button>
         </div>
         <EmptyProjectsState onCreateProject={handleCreateProject} />
+
+        <ProjectForm
+          mode={formMode}
+          project={currentProject}
+          open={showForm}
+          onOpenChange={setShowForm}
+          onSubmit={handleFormSubmit}
+          isLoading={createProject.isPending || updateProject.isPending}
+        />
+        <DeleteProjectDialog
+          project={deletingProject}
+          open={!!deletingProject}
+          onOpenChange={(open) => !open && setDeletingProject(null)}
+        />
       </div>
     );
   }
@@ -182,10 +206,31 @@ export function ProjectsList() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Projects</h2>
-        <Button onClick={handleCreateProject}>
-          <Plus className="h-4 w-4 mr-2" />
-          New Project
-        </Button>
+        <div className="flex flex-row gap-2">
+          {currentProject && (
+            <div className="text-sm text-muted-foreground mr-2 flex items-center gap-2">
+              <span>
+                Selected:{" "}
+                <span className="font-medium text-primary">
+                  {currentProject.name}
+                </span>
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCurrentProject(null)}
+                className="h-6 px-2 text-xs"
+              >
+                <X className="h-3 w-3 mr-1" />
+                Clear
+              </Button>
+            </div>
+          )}
+          <Button onClick={handleCreateProject}>
+            <Plus className="h-4 w-4 mr-2" />
+            New Project
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -195,13 +240,16 @@ export function ProjectsList() {
             project={project}
             onEdit={handleEditProject}
             onDelete={handleDeleteProject}
+            onManageUsers={handleManageUsers}
+            isSelected={currentProject?.id === project.id}
+            onSelect={() => handleSelectProject(project)}
           />
         ))}
       </div>
 
       <ProjectForm
         mode={formMode}
-        project={editingProject}
+        project={currentProject}
         open={showForm}
         onOpenChange={setShowForm}
         onSubmit={handleFormSubmit}
@@ -211,6 +259,19 @@ export function ProjectsList() {
         project={deletingProject}
         open={!!deletingProject}
         onOpenChange={(open) => !open && setDeletingProject(null)}
+      />
+
+      <UserManagementDialog
+        open={showUserManagement}
+        onOpenChange={setShowUserManagement}
+        title="Manage Project Users"
+        description="Add or remove users from this project"
+        users={projectUsers}
+        onAddUser={handleAddUserToProject}
+        onRemoveUser={handleRemoveUserFromProject}
+        isLoading={
+          addUserToProject.isPending || removeUserFromProject.isPending
+        }
       />
     </div>
   );
