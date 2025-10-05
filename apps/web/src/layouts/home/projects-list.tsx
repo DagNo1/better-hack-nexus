@@ -1,14 +1,15 @@
 "use client";
 
+import { UserManagementDialog } from "@/components/dialogs/user-management-dialog";
 import {
+  useAddUserToProject,
   useCreateProject,
   useGetProjects,
-  useUpdateProject,
-  useAddUserToProject,
-  useRemoveUserFromProject,
   useGetProjectUsers,
+  useRemoveUserFromProject,
+  useUpdateProject,
 } from "@/hooks/project";
-import { useCreateFolder } from "@/hooks/folder";
+import type { Project, ProjectFormData } from "@/types/project";
 import { Button } from "@workspace/ui/components/button";
 import {
   Card,
@@ -18,29 +19,12 @@ import {
   CardTitle,
 } from "@workspace/ui/components/card";
 import { Skeleton } from "@workspace/ui/components/skeleton";
-import { Input } from "@workspace/ui/components/input";
 import { Plus, X } from "lucide-react";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { toast } from "sonner";
 import { ProjectCard } from "../../components/cards/project-card";
 import { DeleteProjectDialog } from "../forms/delete-project-dialog";
 import { ProjectForm } from "../forms/project-form";
-import { UserManagementDialog } from "@/components/dialogs/user-management-dialog";
-import type {
-  Project,
-  ProjectFormData,
-  CreateFolderInput,
-} from "@/types/project";
-import { toast } from "sonner";
-
-// Form validation schema for inline folder creation
-const folderFormSchema = z.object({
-  name: z.string().min(1, "Folder name is required").trim(),
-});
-
-type FolderFormData = z.infer<typeof folderFormSchema>;
 
 // Loading skeleton for project cards
 function ProjectCardSkeleton() {
@@ -85,14 +69,11 @@ function EmptyProjectsState({
 }
 
 export function ProjectsList() {
-  const { data: projects, isLoading, error } = useGetProjects();
+  const { data: projects, isLoading } = useGetProjects();
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
-  const createFolder = useCreateFolder();
 
   const [showForm, setShowForm] = useState(false);
-  const [showFolderForm, setShowFolderForm] = useState(false);
-  const [showInlineFolderInput, setShowInlineFolderInput] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
@@ -107,14 +88,6 @@ export function ProjectsList() {
     selectedProjectForUsers?.id || ""
   );
 
-  // Inline folder creation form
-  const folderForm = useForm<FolderFormData>({
-    resolver: zodResolver(folderFormSchema),
-    defaultValues: {
-      name: "",
-    },
-  });
-
   const handleCreateProject = () => {
     setFormMode("create");
     setCurrentProject(null);
@@ -123,8 +96,6 @@ export function ProjectsList() {
 
   const handleSelectProject = (project: Project) => {
     setCurrentProject(project);
-    setShowInlineFolderInput(false);
-    folderForm.reset();
   };
 
   const handleEditProject = (project: Project) => {
@@ -143,12 +114,7 @@ export function ProjectsList() {
   const handleFormSubmit = async (data: ProjectFormData) => {
     try {
       if (formMode === "create") {
-        const newProject = await createProject.mutateAsync(data);
-        // Create an initial folder for the new project
-        await createFolder.mutateAsync({
-          name: "Getting Started",
-          projectId: newProject.id,
-        });
+        await createProject.mutateAsync(data);
         toast.success("Project created successfully!");
       } else if (formMode === "edit" && currentProject) {
         await updateProject.mutateAsync({
@@ -167,49 +133,6 @@ export function ProjectsList() {
       throw error;
     }
   };
-
-  const handleAddFolder = () => {
-    setShowInlineFolderInput(true);
-  };
-
-  const handleInlineFolderSubmit = async (data: FolderFormData) => {
-    if (!currentProject?.id) {
-      toast.error("No project selected. Please select a project first.");
-      return;
-    }
-
-    try {
-      await createFolder.mutateAsync({
-        name: data.name,
-        projectId: currentProject.id,
-      });
-      folderForm.reset();
-      setShowInlineFolderInput(false);
-      toast.success(`Folder "${data.name}" created successfully!`);
-    } catch (error: any) {
-      console.error("Failed to create folder:", error);
-
-      // Handle specific error types
-      if (error?.data?.code === "CONFLICT") {
-        toast.error("A folder with this name already exists in this project.");
-        folderForm.setError("name", {
-          message: "A folder with this name already exists",
-        });
-      } else if (error?.data?.code === "NOT_FOUND") {
-        toast.error("Project not found. Please refresh and try again.");
-      } else if (error?.data?.code === "BAD_REQUEST") {
-        toast.error("Invalid folder name. Please check your input.");
-        folderForm.setError("name", {
-          message: error.message || "Invalid folder name",
-        });
-      } else {
-        toast.error(
-          error?.message || "Failed to create folder. Please try again."
-        );
-      }
-    }
-  };
-
   const handleManageUsers = (project: Project) => {
     setSelectedProjectForUsers(project);
     setShowUserManagement(true);
@@ -245,33 +168,6 @@ export function ProjectsList() {
           {Array.from({ length: 6 }).map((_, index) => (
             <ProjectCardSkeleton key={index} />
           ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold">Projects</h2>
-          <Button onClick={handleCreateProject}>
-            <Plus className="h-4 w-4 mr-2" />
-            New Project
-          </Button>
-        </div>
-        <div className="text-center py-12">
-          <Card className="max-w-md mx-auto">
-            <CardHeader>
-              <CardTitle className="text-red-600">
-                Error loading projects
-              </CardTitle>
-              <CardDescription>
-                There was a problem loading your projects. Please try again
-                later.
-              </CardDescription>
-            </CardHeader>
-          </Card>
         </div>
       </div>
     );
@@ -329,66 +225,6 @@ export function ProjectsList() {
                 Clear
               </Button>
             </div>
-          )}
-          {showInlineFolderInput && currentProject ? (
-            <div className="flex gap-2">
-              <form
-                onSubmit={(e) => e.preventDefault()}
-                className="flex gap-2"
-              >
-                <Input
-                  placeholder="Enter folder name"
-                  disabled={createFolder.isPending}
-                  {...folderForm.register("name")}
-                  className="w-48"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      folderForm.handleSubmit(handleInlineFolderSubmit)();
-                    }
-                  }}
-                />
-                {folderForm.formState.errors.name && (
-                  <p className="text-sm text-destructive">
-                    {folderForm.formState.errors.name.message}
-                  </p>
-                )}
-                <Button
-                  type="submit"
-                  size="sm"
-                  disabled={createFolder.isPending}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    folderForm.handleSubmit(handleInlineFolderSubmit)();
-                  }}
-                >
-                  {createFolder.isPending ? "Creating..." : "Create"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setShowInlineFolderInput(false);
-                    folderForm.reset();
-                  }}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </form>
-            </div>
-          ) : (
-            <Button
-              onClick={handleAddFolder}
-              variant="outline"
-              disabled={!currentProject}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              New Folder
-            </Button>
           )}
           <Button onClick={handleCreateProject}>
             <Plus className="h-4 w-4 mr-2" />

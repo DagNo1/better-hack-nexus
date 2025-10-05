@@ -209,7 +209,7 @@ export function UserManagementDialog({
                             onValueChange={setEditingRole}
                             disabled={isLoading}
                           >
-                            <SelectTrigger className="h-8 w-20 text-xs">
+                            <SelectTrigger className="h-8 w-full text-xs">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -221,7 +221,7 @@ export function UserManagementDialog({
                             </SelectContent>
                           </Select>
                         ) : (
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge >
                             {USER_ROLES.find((role) => role.value === user.role)?.label || user.role}
                           </Badge>
                         )}
