@@ -126,6 +126,179 @@ export const ZanzibarServerPlugin = (
           }
         }
       ),
+
+      // Get all resources with their actions and roles
+      getResources: createAuthEndpoint(
+        "/zanzibar/resources",
+        {
+          method: "GET",
+          use: [sessionMiddleware],
+        },
+        async (ctx) => {
+          try {
+            if (!policyEngineInstance) {
+              return ctx.json(
+                { error: "Zanzibar not initialized with policies" },
+                { status: 500 }
+              );
+            }
+
+            const resources = policyEngineInstance.getResources();
+            return ctx.json({ resources });
+          } catch (error) {
+            return ctx.json(
+              { error: "Internal server error" },
+              { status: 500 }
+            );
+          }
+        }
+      ),
+
+      // Get all actions for a specific resource type
+      getResourceActions: createAuthEndpoint(
+        "/zanzibar/resources/:resourceType/actions",
+        {
+          method: "GET",
+          use: [sessionMiddleware],
+        },
+        async (ctx) => {
+          try {
+            const resourceType = ctx.params?.resourceType;
+
+            if (!resourceType) {
+              return ctx.json(
+                { error: "Resource type is required" },
+                { status: 400 }
+              );
+            }
+
+            if (!policyEngineInstance) {
+              return ctx.json(
+                { error: "Zanzibar not initialized with policies" },
+                { status: 500 }
+              );
+            }
+
+            const actions =
+              policyEngineInstance.getResourceActions(resourceType);
+
+            if (!actions) {
+              return ctx.json(
+                { error: `Resource type '${resourceType}' not found` },
+                { status: 404 }
+              );
+            }
+
+            return ctx.json({ resourceType, actions });
+          } catch (error) {
+            return ctx.json(
+              { error: "Internal server error" },
+              { status: 500 }
+            );
+          }
+        }
+      ),
+
+      // Get all roles for a specific resource type
+      getResourceRoles: createAuthEndpoint(
+        "/zanzibar/resources/:resourceType/roles",
+        {
+          method: "GET",
+          use: [sessionMiddleware],
+        },
+        async (ctx) => {
+          try {
+            const resourceType = ctx.params?.resourceType;
+
+            if (!resourceType) {
+              return ctx.json(
+                { error: "Resource type is required" },
+                { status: 400 }
+              );
+            }
+
+            if (!policyEngineInstance) {
+              return ctx.json(
+                { error: "Zanzibar not initialized with policies" },
+                { status: 500 }
+              );
+            }
+
+            const roles = policyEngineInstance.getResourceRoles(resourceType);
+
+            if (!roles) {
+              return ctx.json(
+                { error: `Resource type '${resourceType}' not found` },
+                { status: 404 }
+              );
+            }
+
+            return ctx.json({ resourceType, roles });
+          } catch (error) {
+            return ctx.json(
+              { error: "Internal server error" },
+              { status: 500 }
+            );
+          }
+        }
+      ),
+
+      // Get actions for a specific role on a resource type
+      getRoleActions: createAuthEndpoint(
+        "/zanzibar/resources/:resourceType/roles/:roleName/actions",
+        {
+          method: "GET",
+          use: [sessionMiddleware],
+        },
+        async (ctx) => {
+          try {
+            const resourceType = ctx.params?.resourceType;
+            const roleName = ctx.params?.roleName;
+
+            if (!resourceType || !roleName) {
+              return ctx.json(
+                { error: "Resource type and role name are required" },
+                { status: 400 }
+              );
+            }
+
+            if (!policyEngineInstance) {
+              return ctx.json(
+                { error: "Zanzibar not initialized with policies" },
+                { status: 500 }
+              );
+            }
+
+            const actions = policyEngineInstance.getRoleActions(
+              resourceType,
+              roleName
+            );
+
+            if (actions === null) {
+              return ctx.json(
+                { error: `Resource type '${resourceType}' not found` },
+                { status: 404 }
+              );
+            }
+
+            if (actions === undefined) {
+              return ctx.json(
+                {
+                  error: `Role '${roleName}' not found on resource type '${resourceType}'`,
+                },
+                { status: 404 }
+              );
+            }
+
+            return ctx.json({ resourceType, roleName, actions });
+          } catch (error) {
+            return ctx.json(
+              { error: "Internal server error" },
+              { status: 500 }
+            );
+          }
+        }
+      ),
     },
   } satisfies BetterAuthPlugin;
 };

@@ -3,6 +3,7 @@ import type {
   PolicyEvaluationOptions,
   ResourcePolicies,
   Resources,
+  ResourceRoleResponse,
 } from "./types";
 
 // Global policy engine instance
@@ -161,5 +162,59 @@ export class PolicyEngine {
         }`,
       };
     }
+  }
+
+  /**
+   * Get all resources with their actions and roles
+   */
+  getResources(): Resources {
+    return this.resources;
+  }
+
+  /**
+   * Get all actions for a specific resource type
+   */
+  getResourceActions(resourceType: string): string[] | null {
+    const resource = this.resources[resourceType];
+    if (!resource) {
+      return null;
+    }
+    return resource.actions;
+  }
+
+  /**
+   * Get all roles for a specific resource type
+   */
+  getResourceRoles(resourceType: string): ResourceRoleResponse[] | null {
+    const resource = this.resources[resourceType];
+    if (!resource) {
+      return null;
+    }
+    return resource.roles.map((role) => ({
+      name: role.name,
+      actions: role.actions,
+      // Don't expose the condition function in the response
+    }));
+  }
+
+  /**
+   * Get actions for a specific role on a resource type
+   * Returns null if resource type not found, undefined if role not found
+   */
+  getRoleActions(
+    resourceType: string,
+    roleName: string
+  ): string[] | null | undefined {
+    const resource = this.resources[resourceType];
+    if (!resource) {
+      return null;
+    }
+
+    const role = resource.roles.find((r) => r.name === roleName);
+    if (!role) {
+      return undefined;
+    }
+
+    return role.actions;
   }
 }
