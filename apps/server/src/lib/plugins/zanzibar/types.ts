@@ -10,6 +10,24 @@ export type RelationshipFunction = (
   resourceId: string
 ) => Promise<boolean>;
 
+// Role definition
+export interface Role {
+  name: string;
+  actions: string[];
+  condition: RelationshipFunction;
+}
+
+// Resource definition with actions and roles
+export interface ResourceDefinition {
+  actions: string[];
+  roles: Role[];
+}
+
+// Resources configuration
+export interface Resources {
+  [resourceType: string]: ResourceDefinition;
+}
+
 // Action policies for a resource type
 export interface ActionPolicies {
   [action: string]: PolicyFunction;

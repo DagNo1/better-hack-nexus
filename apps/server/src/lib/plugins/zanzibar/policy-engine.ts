@@ -2,23 +2,27 @@ import type {
   AuthorizationResult,
   PolicyEvaluationOptions,
   ResourcePolicies,
+  Resources,
 } from "./types";
 
 // Global policy engine instance
 export let policyEngineInstance: PolicyEngine | null = null;
 
 export function initializePolicyEngine(
-  policies: ResourcePolicies
+  policies: ResourcePolicies,
+  resources?: Resources
 ): PolicyEngine {
-  policyEngineInstance = new PolicyEngine(policies);
+  policyEngineInstance = new PolicyEngine(policies, resources);
   return policyEngineInstance;
 }
 
 export class PolicyEngine {
   private policies: ResourcePolicies = {};
+  private resources?: Resources;
 
-  constructor(policies: ResourcePolicies) {
+  constructor(policies: ResourcePolicies, resources?: Resources) {
     this.policies = policies;
+    this.resources = resources;
   }
 
   /**

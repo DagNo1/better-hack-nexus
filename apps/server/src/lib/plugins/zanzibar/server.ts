@@ -1,14 +1,17 @@
 import { type BetterAuthPlugin } from "better-auth";
 import { createAuthEndpoint, sessionMiddleware } from "better-auth/api";
 import { initializePolicyEngine, policyEngineInstance } from "./policy-engine";
-import type { ResourcePolicies } from "./types";
+import type { ResourcePolicies, Resources } from "./types";
 import { z } from "zod/v3";
 
-export const ZanzibarServerPlugin = (policies?: ResourcePolicies) => {
+export const ZanzibarServerPlugin = (
+  policies: ResourcePolicies,
+  resources: Resources
+) => {
   const pluginId = "zanzibar-plugin";
 
-  if (policies && !policyEngineInstance) {
-    initializePolicyEngine(policies);
+  if (!policyEngineInstance) {
+    initializePolicyEngine(policies, resources);
   }
 
   return {
@@ -132,4 +135,5 @@ export type {
   AuthorizationResult,
   PolicyFunction,
   ResourcePolicies,
+  Resources,
 } from "./types";

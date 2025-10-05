@@ -1,8 +1,11 @@
 import prisma from "@/db";
 import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { ZanzibarServerPlugin } from "../plugins/zanzibar";
-import { examplePolicies } from "./policies";
+import { ZanzibarServerPlugin, setResources } from "../plugins/zanzibar";
+import { examplePolicies, resources } from "./policies";
+
+// Initialize resources in the check module
+setResources(resources);
 
 export const auth = betterAuth<BetterAuthOptions>({
   database: prismaAdapter(prisma, {
@@ -19,5 +22,5 @@ export const auth = betterAuth<BetterAuthOptions>({
       httpOnly: true,
     },
   },
-  plugins: [ZanzibarServerPlugin(examplePolicies)],
+  plugins: [ZanzibarServerPlugin(examplePolicies, resources)],
 });
