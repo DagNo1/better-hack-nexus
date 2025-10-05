@@ -1,10 +1,12 @@
-import type { ResourcePolicies } from "../plugins/zanzibar";
-import { checkUserHasRoleForAction } from "../plugins/zanzibar";
+import {
+  checkUserHasResourceRoleForAction,
+  type ResourcePolicies,
+} from "../plugins/zanzibar";
 
 export const policies: ResourcePolicies = {
   project: {
     delete: async (userId: string, resourceId: string) => {
-      return await checkUserHasRoleForAction(
+      return await checkUserHasResourceRoleForAction(
         "project",
         "delete",
         userId,
@@ -12,7 +14,7 @@ export const policies: ResourcePolicies = {
       );
     },
     read: async (userId: string, resourceId: string) => {
-      return await checkUserHasRoleForAction(
+      return await checkUserHasResourceRoleForAction(
         "project",
         "read",
         userId,
@@ -20,7 +22,7 @@ export const policies: ResourcePolicies = {
       );
     },
     edit: async (userId: string, resourceId: string) => {
-      return await checkUserHasRoleForAction(
+      return await checkUserHasResourceRoleForAction(
         "project",
         "edit",
         userId,
@@ -28,7 +30,7 @@ export const policies: ResourcePolicies = {
       );
     },
     share: async (userId: string, resourceId: string) => {
-      return await checkUserHasRoleForAction(
+      return await checkUserHasResourceRoleForAction(
         "project",
         "share",
         userId,
@@ -38,7 +40,7 @@ export const policies: ResourcePolicies = {
   },
   folder: {
     delete: async (userId: string, resourceId: string) => {
-      return await checkUserHasRoleForAction(
+      return await checkUserHasResourceRoleForAction(
         "folder",
         "delete",
         userId,
@@ -46,7 +48,7 @@ export const policies: ResourcePolicies = {
       );
     },
     read: async (userId: string, resourceId: string) => {
-      return await checkUserHasRoleForAction(
+      return await checkUserHasResourceRoleForAction(
         "folder",
         "read",
         userId,
@@ -54,7 +56,7 @@ export const policies: ResourcePolicies = {
       );
     },
     edit: async (userId: string, resourceId: string) => {
-      return await checkUserHasRoleForAction(
+      return await checkUserHasResourceRoleForAction(
         "folder",
         "edit",
         userId,
@@ -62,7 +64,7 @@ export const policies: ResourcePolicies = {
       );
     },
     share: async (userId: string, resourceId: string) => {
-      return await checkUserHasRoleForAction(
+      return await checkUserHasResourceRoleForAction(
         "folder",
         "share",
         userId,

@@ -10,19 +10,74 @@ export let policyEngineInstance: PolicyEngine | null = null;
 
 export function initializePolicyEngine(
   policies: ResourcePolicies,
-  resources?: Resources
+  resources: Resources
 ): PolicyEngine {
   policyEngineInstance = new PolicyEngine(policies, resources);
+
   return policyEngineInstance;
 }
 
 export class PolicyEngine {
   private policies: ResourcePolicies = {};
-  private resources?: Resources;
+  private resources: Resources;
 
-  constructor(policies: ResourcePolicies, resources?: Resources) {
+  constructor(policies: ResourcePolicies, resources: Resources) {
     this.policies = policies;
     this.resources = resources;
+  }
+
+  /**
+   * Check if user has a specific role on a resource
+   */
+  async checkUserHasResourceRole(
+    resourceType: string,
+    roleName: string,
+    userId: string,
+    resourceId: string
+  ): Promise<boolean> {
+    const resource = this.resources[resourceType];
+    if (!resource) {
+      return false;
+    }
+
+    // Find the specific role
+    const role = resource.roles.find((r) => r.name === roleName);
+    if (!role) {
+      return false;
+    }
+
+    // Check if user has this role
+    return await role.condition(userId, resourceId);
+  }
+
+  /**
+   * Check if user has any role that allows the action
+   */
+  async checkUserHasResourceRoleForAction(
+    resourceType: string,
+    action: string,
+    userId: string,
+    resourceId: string
+  ): Promise<boolean> {
+    const resource = this.resources[resourceType];
+    if (!resource) {
+      return false;
+    }
+
+    // Find all roles that have this action in their permissions
+    const relevantRoles = resource.roles.filter((role) =>
+      role.actions.includes(action)
+    );
+
+    // Check if user satisfies ANY of the relevant roles
+    for (const role of relevantRoles) {
+      const hasRole = await role.condition(userId, resourceId);
+      if (hasRole) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   /**
