@@ -299,6 +299,100 @@ export const ZanzibarServerPlugin = (
           }
         }
       ),
+
+      // Get all roles for a user on a specific resource
+      getUserRoles: createAuthEndpoint(
+        "/zanzibar/users/:userId/roles",
+        {
+          method: "POST",
+          use: [sessionMiddleware],
+          body: z.object({
+            resourceType: z.string(),
+            resourceId: z.string(),
+          }),
+        },
+        async (ctx) => {
+          try {
+            const userId = ctx.params?.userId;
+            const body = await ctx.request?.json();
+            const { resourceType, resourceId } = body;
+
+            if (!userId || !resourceType || !resourceId) {
+              return ctx.json(
+                {
+                  error: "User ID, resource type, and resource ID are required",
+                },
+                { status: 400 }
+              );
+            }
+
+            if (!policyEngineInstance) {
+              return ctx.json(
+                { error: "Zanzibar not initialized with policies" },
+                { status: 500 }
+              );
+            }
+
+            const userRoles = await policyEngineInstance.getUserRoles(
+              userId,
+              resourceType,
+              resourceId
+            );
+
+            if (!userRoles) {
+              return ctx.json(
+                { error: `Resource type '${resourceType}' not found` },
+                { status: 404 }
+              );
+            }
+
+            return ctx.json(userRoles);
+          } catch (error) {
+            return ctx.json(
+              { error: "Internal server error" },
+              { status: 500 }
+            );
+          }
+        }
+      ),
+
+      // Get all roles for a user across all resource types
+      getAllUserRoles: createAuthEndpoint(
+        "/zanzibar/users/:userId/roles/all",
+        {
+          method: "GET",
+          use: [sessionMiddleware],
+        },
+        async (ctx) => {
+          try {
+            const userId = ctx.params?.userId;
+
+            if (!userId) {
+              return ctx.json(
+                { error: "User ID is required" },
+                { status: 400 }
+              );
+            }
+
+            if (!policyEngineInstance) {
+              return ctx.json(
+                { error: "Zanzibar not initialized with policies" },
+                { status: 500 }
+              );
+            }
+
+            const allUserRoles =
+              await policyEngineInstance.getAllUserRoles(userId);
+
+            return ctx.json({ userId, roles: allUserRoles });
+          } catch (error) {
+            return ctx.json(
+              { error: "Internal server error" },
+              { status: 500 }
+            );
+          }
+        }
+      ),
     },
   } satisfies BetterAuthPlugin;
 };
@@ -309,4 +403,5 @@ export type {
   PolicyFunction,
   ResourcePolicies,
   Resources,
+  UserRoleResponse,
 } from "./types";

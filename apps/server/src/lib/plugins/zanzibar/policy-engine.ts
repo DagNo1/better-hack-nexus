@@ -4,6 +4,7 @@ import type {
   ResourcePolicies,
   Resources,
   ResourceRoleResponse,
+  UserRoleResponse,
 } from "./types";
 
 // Global policy engine instance
@@ -216,5 +217,62 @@ export class PolicyEngine {
     }
 
     return role.actions;
+  }
+
+  /**
+   * Get all roles for a user on a specific resource
+   */
+  async getUserRoles(
+    userId: string,
+    resourceType: string,
+    resourceId: string
+  ): Promise<UserRoleResponse | null> {
+    const resource = this.resources[resourceType];
+    if (!resource) {
+      return null;
+    }
+
+    const userRoles: ResourceRoleResponse[] = [];
+
+    // Check each role to see if the user has it
+    for (const role of resource.roles) {
+      const hasRole = await role.condition(userId, resourceId);
+      if (hasRole) {
+        userRoles.push({
+          name: role.name,
+          actions: role.actions,
+        });
+      }
+    }
+
+    return {
+      resourceType,
+      resourceId,
+      roles: userRoles,
+    };
+  }
+
+  /**
+   * Get all roles for a user across all resource types
+   */
+  async getAllUserRoles(userId: string): Promise<UserRoleResponse[]> {
+    const allUserRoles: UserRoleResponse[] = [];
+
+    // For each resource type, we need to check against all possible resource IDs
+    // This is a simplified implementation - in practice, you might want to pass
+    // specific resource IDs or implement a different strategy
+    for (const [resourceType, resource] of Object.entries(this.resources)) {
+      // Note: This is a placeholder implementation
+      // In a real scenario, you'd need to know which resource IDs to check
+      // For now, we'll return an empty array for each resource type
+      // The client should call getUserRoles with specific resource IDs
+      allUserRoles.push({
+        resourceType,
+        resourceId: "*", // Placeholder - indicates all resources of this type
+        roles: [],
+      });
+    }
+
+    return allUserRoles;
   }
 }

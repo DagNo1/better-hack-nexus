@@ -23,6 +23,13 @@ export interface ResourceRoleResponse {
   actions: string[];
 }
 
+// User role response for a specific resource
+export interface UserRoleResponse {
+  resourceType: string;
+  resourceId: string;
+  roles: ResourceRoleResponse[];
+}
+
 // Resource definition with actions and roles
 export interface ResourceDefinition {
   actions: string[];
