@@ -5,7 +5,15 @@ import {
   useDeleteFolder,
   useGetFoldersByProject,
   useUpdateFolder,
+  useAddUserToFolder,
+  useRemoveUserFromFolder,
+  useGetFolderUsers,
 } from "@/hooks/folder";
+import {
+  useAddUserToProject,
+  useRemoveUserFromProject,
+  useGetProjectUsers,
+} from "@/hooks/project";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
@@ -17,10 +25,20 @@ import { toast } from "sonner";
 import { z } from "zod";
 import type { Project, ProjectFormData, Folder } from "@/types/project";
 import { FolderItem } from "./folder-item";
+import { 
+  UserManagementDialog,
+  DeleteFolderDialog,
+  EditFolderDialog,
+} from "@/components/dialogs";
 
 // Form validation schema for inline folder creation
 const folderFormSchema = z.object({
-  name: z.string().min(1, "Folder name is required").trim(),
+  name: z
+    .string()
+    .min(1, "Folder name is required")
+    .max(100, "Folder name must be 100 characters or less")
+    .trim()
+    .refine((val) => val.length > 0, "Folder name cannot be empty"),
 });
 
 type FolderFormData = z.infer<typeof folderFormSchema>;
@@ -43,6 +61,13 @@ export function ProjectForm({
 }: ProjectFormProps) {
   const [name, setName] = useState("");
   const [showInlineFolderInput, setShowInlineFolderInput] = useState(false);
+  const [showUserManagement, setShowUserManagement] = useState(false);
+  const [selectedFolderForUsers, setSelectedFolderForUsers] = useState<
+    string | null
+  >(null);
+  const [showDeleteFolderDialog, setShowDeleteFolderDialog] = useState(false);
+  const [showEditFolderDialog, setShowEditFolderDialog] = useState(false);
+  const [selectedFolder, setSelectedFolder] = useState<Folder | null>(null);
 
   const { data: folders, isLoading: foldersLoading } = useGetFoldersByProject(
     project?.id || ""
@@ -51,6 +76,17 @@ export function ProjectForm({
   const createFolder = useCreateFolder();
   const updateFolder = useUpdateFolder();
   const deleteFolder = useDeleteFolder();
+
+  // User management hooks
+  const addUserToProject = useAddUserToProject();
+  const removeUserFromProject = useRemoveUserFromProject();
+  const { data: projectUsers = [] } = useGetProjectUsers(project?.id || "");
+
+  const addUserToFolder = useAddUserToFolder();
+  const removeUserFromFolder = useRemoveUserFromFolder();
+  const { data: folderUsers = [] } = useGetFolderUsers(
+    selectedFolderForUsers || ""
+  );
 
   // Inline folder creation form
   const folderForm = useForm<FolderFormData>({
@@ -97,6 +133,9 @@ export function ProjectForm({
     } else {
       setName("");
     }
+    // Reset folder form state
+    folderForm.reset();
+    setShowInlineFolderInput(false);
     onOpenChange(false);
   };
 
@@ -106,7 +145,10 @@ export function ProjectForm({
   };
 
   const handleInlineFolderSubmit = async (data: FolderFormData) => {
-    if (!project?.id) return;
+    if (!project?.id) {
+      toast.error("No project selected. Please select a project first.");
+      return;
+    }
 
     try {
       await createFolder.mutateAsync({
@@ -116,34 +158,83 @@ export function ProjectForm({
       folderForm.reset();
       setShowInlineFolderInput(false);
       toast.success(`Folder "${data.name}" created successfully!`);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to create folder:", error);
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Failed to create folder. Please try again."
-      );
-    }
-  };
 
-  const handleEditFolder = (folder: Folder) => {
-    // TODO: Implement inline folder editing
-    toast.info("Inline folder editing will be implemented");
-  };
-
-  const handleDeleteFolder = async (folderId: string) => {
-    if (confirm("Are you sure you want to delete this folder?")) {
-      try {
-        await deleteFolder.mutateAsync({ id: folderId });
-      } catch (error) {
-        console.error("Failed to delete folder:", error);
+      // Handle specific error types
+      if (error?.data?.code === "CONFLICT") {
+        toast.error("A folder with this name already exists in this project.");
+        folderForm.setError("name", {
+          message: "A folder with this name already exists",
+        });
+      } else if (error?.data?.code === "NOT_FOUND") {
+        toast.error("Project not found. Please refresh and try again.");
+      } else if (error?.data?.code === "BAD_REQUEST") {
+        toast.error("Invalid folder name. Please check your input.");
+        folderForm.setError("name", {
+          message: error.message || "Invalid folder name",
+        });
+      } else {
+        toast.error(
+          error?.message || "Failed to create folder. Please try again."
+        );
       }
     }
   };
 
+  const handleEditFolder = (folder: Folder) => {
+    setSelectedFolder(folder);
+    setShowEditFolderDialog(true);
+  };
+
+  const handleDeleteFolder = async (folderId: string) => {
+    const folder = folders?.find(f => f.id === folderId);
+    if (folder) {
+      setSelectedFolder(folder);
+      setShowDeleteFolderDialog(true);
+    }
+  };
+
   const handleAddUser = (folderId: string) => {
-    // TODO: Implement add user functionality
-    toast.info("Add user functionality will be implemented later");
+    setSelectedFolderForUsers(folderId);
+    setShowUserManagement(true);
+  };
+
+  const handleProjectUserManagement = () => {
+    setSelectedFolderForUsers(null);
+    setShowUserManagement(true);
+  };
+
+  const handleAddUserToProject = async (userId: string) => {
+    if (!project?.id) return;
+    await addUserToProject.mutateAsync({
+      projectId: project.id,
+      userId,
+    });
+  };
+
+  const handleRemoveUserFromProject = async (userId: string) => {
+    if (!project?.id) return;
+    await removeUserFromProject.mutateAsync({
+      projectId: project.id,
+      userId,
+    });
+  };
+
+  const handleAddUserToFolder = async (userId: string) => {
+    if (!selectedFolderForUsers) return;
+    await addUserToFolder.mutateAsync({
+      folderId: selectedFolderForUsers,
+      userId,
+    });
+  };
+
+  const handleRemoveUserFromFolder = async (userId: string) => {
+    if (!selectedFolderForUsers) return;
+    await removeUserFromFolder.mutateAsync({
+      folderId: selectedFolderForUsers,
+      userId,
+    });
   };
 
   if (!open) return null;
@@ -160,12 +251,26 @@ export function ProjectForm({
           </h2>
 
           <div className="mb-4">
-            <Label
-              htmlFor="project-name"
-              className="block text-sm font-medium mb-2"
-            >
-              Name
-            </Label>
+            <div className="flex items-center justify-between mb-2">
+              <Label
+                htmlFor="project-name"
+                className="block text-sm font-medium"
+              >
+                Name
+              </Label>
+              {mode === "edit" && project && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleProjectUserManagement}
+                  className="text-xs"
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Manage Users
+                </Button>
+              )}
+            </div>
             <Input
               id="project-name"
               value={name}
@@ -221,13 +326,20 @@ export function ProjectForm({
               {showInlineFolderInput ? (
                 <div className="space-y-2">
                   <form
-                    onSubmit={folderForm.handleSubmit(handleInlineFolderSubmit)}
+                    onSubmit={(e) => e.preventDefault()}
+                    className="space-y-2"
                   >
                     <Input
                       placeholder="Enter folder name"
                       disabled={createFolder.isPending}
                       {...folderForm.register("name")}
                       className="w-full"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          folderForm.handleSubmit(handleInlineFolderSubmit)();
+                        }
+                      }}
                     />
                     {folderForm.formState.errors.name && (
                       <p className="text-sm text-destructive">
@@ -239,6 +351,11 @@ export function ProjectForm({
                         type="submit"
                         size="sm"
                         disabled={createFolder.isPending}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          folderForm.handleSubmit(handleInlineFolderSubmit)();
+                        }}
                       >
                         {createFolder.isPending ? "Creating..." : "Create"}
                       </Button>
@@ -246,7 +363,9 @@ export function ProjectForm({
                         type="button"
                         variant="outline"
                         size="sm"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           setShowInlineFolderInput(false);
                           folderForm.reset();
                         }}
@@ -295,6 +414,53 @@ export function ProjectForm({
             </Button>
           </div>
         </form>
+
+        {/* User Management Dialog */}
+        <UserManagementDialog
+          open={showUserManagement}
+          onOpenChange={setShowUserManagement}
+          title={
+            selectedFolderForUsers
+              ? "Manage Folder Users"
+              : "Manage Project Users"
+          }
+          description={
+            selectedFolderForUsers
+              ? "Add or remove users from this folder"
+              : "Add or remove users from this project"
+          }
+          users={selectedFolderForUsers ? folderUsers : projectUsers}
+          onAddUser={
+            selectedFolderForUsers
+              ? handleAddUserToFolder
+              : handleAddUserToProject
+          }
+          onRemoveUser={
+            selectedFolderForUsers
+              ? handleRemoveUserFromFolder
+              : handleRemoveUserFromProject
+          }
+          isLoading={
+            addUserToProject.isPending ||
+            removeUserFromProject.isPending ||
+            addUserToFolder.isPending ||
+            removeUserFromFolder.isPending
+          }
+        />
+
+        {/* Delete Folder Dialog */}
+        <DeleteFolderDialog
+          folder={selectedFolder}
+          open={showDeleteFolderDialog}
+          onOpenChange={setShowDeleteFolderDialog}
+        />
+
+        {/* Edit Folder Dialog */}
+        <EditFolderDialog
+          folder={selectedFolder}
+          open={showEditFolderDialog}
+          onOpenChange={setShowEditFolderDialog}
+        />
       </div>
     </div>
   );

@@ -47,7 +47,7 @@ export interface User {
 
 export interface CreateFolderInput {
   name: string;
-  projectId: string;
+  projectId?: string;
   parentId?: string;
 }
 

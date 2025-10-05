@@ -9,6 +9,24 @@ export const useGetUsers = () =>
 export const useGetUserById = (id: string) =>
   useQuery(trpc.user.getById.queryOptions({ id }));
 
+export const useGetUserByEmail = (email: string) =>
+  useQuery(trpc.user.getByEmail.queryOptions({ email }));
+
+export const useCreateTestUser = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    ...trpc.user.createTestUser.mutationOptions(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: trpc.user.getAll.queryKey(),
+      });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to create test user");
+    },
+  });
+};
+
 // Mutation hooks
 export const useCreateUser = () => {
   const queryClient = useQueryClient();

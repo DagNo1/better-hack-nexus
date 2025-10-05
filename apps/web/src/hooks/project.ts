@@ -63,3 +63,49 @@ export const useDeleteProject = () => {
     },
   });
 };
+
+// User management hooks for projects
+export const useAddUserToProject = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    ...trpc.project.addUser.mutationOptions(),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: trpc.project.getUsers.queryKey({
+          projectId: variables.projectId,
+        }),
+      });
+      queryClient.invalidateQueries({
+        queryKey: trpc.project.getAll.queryKey(),
+      });
+      toast.success("User added to project successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to add user to project");
+    },
+  });
+};
+
+export const useRemoveUserFromProject = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    ...trpc.project.removeUser.mutationOptions(),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: trpc.project.getUsers.queryKey({
+          projectId: variables.projectId,
+        }),
+      });
+      queryClient.invalidateQueries({
+        queryKey: trpc.project.getAll.queryKey(),
+      });
+      toast.success("User removed from project successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to remove user from project");
+    },
+  });
+};
+
+export const useGetProjectUsers = (projectId: string) =>
+  useQuery(trpc.project.getUsers.queryOptions({ projectId }));

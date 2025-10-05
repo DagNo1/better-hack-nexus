@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeleteProject } from "@/hooks/project";
+import { useDeleteFolder } from "@/hooks/folder";
 import { Button } from "@workspace/ui/components/button";
 import {
   Dialog,
@@ -11,35 +11,35 @@ import {
   DialogTitle,
 } from "@workspace/ui/components/dialog";
 import { AlertTriangle } from "lucide-react";
-import type { Project } from "@/types/project";
+import type { Folder } from "@/types/project";
 import { toast } from "sonner";
 
-interface DeleteProjectDialogProps {
-  project: Project | null;
+interface DeleteFolderDialogProps {
+  folder: Folder | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function DeleteProjectDialog({
-  project,
+export function DeleteFolderDialog({
+  folder,
   open,
   onOpenChange,
-}: DeleteProjectDialogProps) {
-  const deleteProject = useDeleteProject();
+}: DeleteFolderDialogProps) {
+  const deleteFolder = useDeleteFolder();
 
   const handleDelete = () => {
-    if (!project) return;
+    if (!folder) return;
 
-    deleteProject.mutate(
-      { id: project.id },
+    deleteFolder.mutate(
+      { id: folder.id },
       {
         onSuccess: () => {
-          toast.success("Project deleted successfully!");
+          toast.success("Folder deleted successfully!");
           onOpenChange(false);
         },
         onError: (error) => {
-          console.error("Delete project error:", error);
-          toast.error("Failed to delete project. Please try again.");
+          console.error("Delete folder error:", error);
+          toast.error("Failed to delete folder. Please try again.");
         },
       }
     );
@@ -51,19 +51,19 @@ export function DeleteProjectDialog({
         <DialogHeader>
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-destructive" />
-            <DialogTitle>Delete Project</DialogTitle>
+            <DialogTitle>Delete Folder</DialogTitle>
           </div>
           <DialogDescription>
-            Are you sure you want to delete the project "{project?.name}"? This
+            Are you sure you want to delete the folder "{folder?.name}"? This
             action cannot be undone.
           </DialogDescription>
         </DialogHeader>
 
-        {project && (
+        {folder && (
           <div className="bg-muted p-3 rounded-md">
-            <p className="text-sm font-medium">{project.name}</p>
+            <p className="text-sm font-medium">{folder.name}</p>
             <p className="text-xs text-muted-foreground">
-              Created: {new Date(project.createdAt).toLocaleDateString()}
+              Created: {new Date(folder.createdAt).toLocaleDateString()}
             </p>
           </div>
         )}
@@ -75,9 +75,9 @@ export function DeleteProjectDialog({
           <Button
             variant="destructive"
             onClick={handleDelete}
-            disabled={deleteProject.isPending}
+            disabled={deleteFolder.isPending}
           >
-            {deleteProject.isPending ? "Deleting..." : "Delete Project"}
+            {deleteFolder.isPending ? "Deleting..." : "Delete Folder"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -41,6 +41,8 @@ interface ProjectCardProps {
   onEdit?: (project: Project) => void;
   onDelete?: (projectId: string) => void;
   onManageUsers?: (project: Project) => void;
+  isSelected?: boolean;
+  onSelect?: () => void;
 }
 
 export function ProjectCard({
@@ -48,6 +50,8 @@ export function ProjectCard({
   onEdit,
   onDelete,
   onManageUsers,
+  isSelected = false,
+  onSelect,
 }: ProjectCardProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -75,7 +79,12 @@ export function ProjectCard({
     (project.files?.length || 0) + (project.folders?.length || 0);
 
   return (
-    <Card className="group hover:shadow-lg transition-all duration-200 hover:scale-[1.02] cursor-pointer border border-border hover:border-primary/20 bg-background">
+    <Card
+      className={`group hover:shadow-lg transition-all duration-200 hover:scale-[1.02] cursor-pointer border hover:border-primary/20 bg-background ${
+        isSelected ? 'border-primary bg-primary/5 ring-2 ring-primary/20' : 'border-border'
+      }`}
+      onClick={onSelect}
+    >
       <CardHeader className="pb-0">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">

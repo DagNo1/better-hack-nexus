@@ -17,27 +17,48 @@ export const useCreateFolder = () => {
     ...trpc.folder.create.mutationOptions(),
     onSuccess: (data, variables) => {
       console.log("useCreateFolder: Mutation succeeded with data:", data);
-      queryClient.invalidateQueries({
-        queryKey: trpc.folder.getAll.queryKey(),
-      });
-      // Also invalidate project-specific folder queries
-      if (variables.projectId) {
+
+      // Invalidate queries in a more targeted way to avoid race conditions
+      const invalidatePromises = [];
+
+      // Always invalidate all folders
+      invalidatePromises.push(
         queryClient.invalidateQueries({
-          queryKey: trpc.folder.getByProject.queryKey({
-            projectId: variables.projectId,
-          }),
-        });
+          queryKey: trpc.folder.getAll.queryKey(),
+        })
+      );
+
+      // Invalidate project-specific folder queries if projectId exists
+      if (variables.projectId) {
+        invalidatePromises.push(
+          queryClient.invalidateQueries({
+            queryKey: trpc.folder.getByProject.queryKey({
+              projectId: variables.projectId,
+            }),
+          })
+        );
+
+        // Invalidate project queries for this specific project
+        invalidatePromises.push(
+          queryClient.invalidateQueries({
+            queryKey: trpc.project.getById.queryKey({
+              id: variables.projectId,
+            }),
+          })
+        );
       }
-      queryClient.invalidateQueries({
-        queryKey: trpc.folder.getById.queryKey(),
-      });
-      queryClient.invalidateQueries({
-        queryKey: trpc.project.getById.queryKey(),
-      });
-      queryClient.invalidateQueries({
-        queryKey: trpc.project.getAll.queryKey(),
-      });
-      toast.success("Folder created successfully");
+
+      // Invalidate all projects to update folder counts
+      invalidatePromises.push(
+        queryClient.invalidateQueries({
+          queryKey: trpc.project.getAll.queryKey(),
+        })
+      );
+
+      // Wait for all invalidations to complete
+      Promise.all(invalidatePromises).catch(console.error);
+
+      // Don't show success toast here as it's handled in the component
     },
     onError: (error: any, variables) => {
       console.error(
@@ -46,7 +67,7 @@ export const useCreateFolder = () => {
         "variables:",
         variables
       );
-      toast.error(error.message || "Failed to create folder");
+      // Don't show error toast here as it's handled in the component
     },
   });
 };
@@ -82,3 +103,49 @@ export const useDeleteFolder = () => {
     },
   });
 };
+
+// User management hooks for folders
+export const useAddUserToFolder = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    ...trpc.folder.addUser.mutationOptions(),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: trpc.folder.getUsers.queryKey({
+          folderId: variables.folderId,
+        }),
+      });
+      queryClient.invalidateQueries({
+        queryKey: trpc.folder.getByProject.queryKey(),
+      });
+      toast.success("User added to folder successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to add user to folder");
+    },
+  });
+};
+
+export const useRemoveUserFromFolder = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    ...trpc.folder.removeUser.mutationOptions(),
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: trpc.folder.getUsers.queryKey({
+          folderId: variables.folderId,
+        }),
+      });
+      queryClient.invalidateQueries({
+        queryKey: trpc.folder.getByProject.queryKey(),
+      });
+      toast.success("User removed from folder successfully");
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to remove user from folder");
+    },
+  });
+};
+
+export const useGetFolderUsers = (folderId: string) =>
+  useQuery(trpc.folder.getUsers.queryOptions({ folderId }));

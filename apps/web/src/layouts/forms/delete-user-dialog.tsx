@@ -2,6 +2,14 @@
 
 import { useDeleteUser } from "@/hooks/user";
 import { Button } from "@workspace/ui/components/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@workspace/ui/components/dialog";
 import { AlertTriangle } from "lucide-react";
 import type { User } from "@/types/project";
 import { toast } from "sonner";
@@ -37,26 +45,30 @@ export function DeleteUserDialog({
     );
   };
 
-  if (!user || !open) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-background p-6 rounded-lg max-w-md w-full mx-4 border border-border">
-        <div className="flex items-center gap-2 mb-4">
-          <AlertTriangle className="h-5 w-5 text-destructive" />
-          <h2 className="text-xl font-bold">Delete User</h2>
-        </div>
-        <p className="mb-4">
-          Are you sure you want to delete the user "{user.name}"? This action
-          cannot be undone.
-        </p>
-        <div className="bg-muted p-3 rounded-md mb-4">
-          <p className="text-sm font-medium">{user.name}</p>
-          <p className="text-xs text-muted-foreground">
-            Created: {new Date(user.createdAt).toLocaleDateString()}
-          </p>
-        </div>
-        <div className="flex gap-2 justify-end">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+            <DialogTitle>Delete User</DialogTitle>
+          </div>
+          <DialogDescription>
+            Are you sure you want to delete the user "{user?.name}"? This action
+            cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+
+        {user && (
+          <div className="bg-muted p-3 rounded-md">
+            <p className="text-sm font-medium">{user.name}</p>
+            <p className="text-xs text-muted-foreground">
+              Created: {new Date(user.createdAt).toLocaleDateString()}
+            </p>
+          </div>
+        )}
+
+        <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
@@ -67,8 +79,8 @@ export function DeleteUserDialog({
           >
             {deleteUser.isPending ? "Deleting..." : "Delete User"}
           </Button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

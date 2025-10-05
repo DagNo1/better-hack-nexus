@@ -4,6 +4,9 @@ import {
   useCreateProject,
   useGetProjects,
   useUpdateProject,
+  useAddUserToProject,
+  useRemoveUserFromProject,
+  useGetProjectUsers,
 } from "@/hooks/project";
 import { useCreateFolder } from "@/hooks/folder";
 import { Button } from "@workspace/ui/components/button";
@@ -24,6 +27,7 @@ import { z } from "zod";
 import { ProjectCard } from "../../components/cards/project-card";
 import { DeleteProjectDialog } from "../forms/delete-project-dialog";
 import { ProjectForm } from "../forms/project-form";
+import { UserManagementDialog } from "@/components/dialogs/user-management-dialog";
 import type {
   Project,
   ProjectFormData,
@@ -92,6 +96,16 @@ export function ProjectsList() {
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
+  const [showUserManagement, setShowUserManagement] = useState(false);
+  const [selectedProjectForUsers, setSelectedProjectForUsers] =
+    useState<Project | null>(null);
+
+  // User management hooks
+  const addUserToProject = useAddUserToProject();
+  const removeUserFromProject = useRemoveUserFromProject();
+  const { data: projectUsers = [] } = useGetProjectUsers(
+    selectedProjectForUsers?.id || ""
+  );
 
   // Inline folder creation form
   const folderForm = useForm<FolderFormData>({
@@ -105,6 +119,12 @@ export function ProjectsList() {
     setFormMode("create");
     setCurrentProject(null);
     setShowForm(true);
+  };
+
+  const handleSelectProject = (project: Project) => {
+    setCurrentProject(project);
+    setShowInlineFolderInput(false);
+    folderForm.reset();
   };
 
   const handleEditProject = (project: Project) => {
@@ -153,7 +173,10 @@ export function ProjectsList() {
   };
 
   const handleInlineFolderSubmit = async (data: FolderFormData) => {
-    if (!currentProject?.id) return;
+    if (!currentProject?.id) {
+      toast.error("No project selected. Please select a project first.");
+      return;
+    }
 
     try {
       await createFolder.mutateAsync({
@@ -162,9 +185,50 @@ export function ProjectsList() {
       });
       folderForm.reset();
       setShowInlineFolderInput(false);
-    } catch (error) {
+      toast.success(`Folder "${data.name}" created successfully!`);
+    } catch (error: any) {
       console.error("Failed to create folder:", error);
+
+      // Handle specific error types
+      if (error?.data?.code === "CONFLICT") {
+        toast.error("A folder with this name already exists in this project.");
+        folderForm.setError("name", {
+          message: "A folder with this name already exists",
+        });
+      } else if (error?.data?.code === "NOT_FOUND") {
+        toast.error("Project not found. Please refresh and try again.");
+      } else if (error?.data?.code === "BAD_REQUEST") {
+        toast.error("Invalid folder name. Please check your input.");
+        folderForm.setError("name", {
+          message: error.message || "Invalid folder name",
+        });
+      } else {
+        toast.error(
+          error?.message || "Failed to create folder. Please try again."
+        );
+      }
     }
+  };
+
+  const handleManageUsers = (project: Project) => {
+    setSelectedProjectForUsers(project);
+    setShowUserManagement(true);
+  };
+
+  const handleAddUserToProject = async (userId: string) => {
+    if (!selectedProjectForUsers?.id) return;
+    await addUserToProject.mutateAsync({
+      projectId: selectedProjectForUsers.id,
+      userId,
+    });
+  };
+
+  const handleRemoveUserFromProject = async (userId: string) => {
+    if (!selectedProjectForUsers?.id) return;
+    await removeUserFromProject.mutateAsync({
+      projectId: selectedProjectForUsers.id,
+      userId,
+    });
   };
 
   if (isLoading) {
@@ -247,14 +311,42 @@ export function ProjectsList() {
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Projects</h2>
         <div className="flex flex-row gap-2">
+          {currentProject && (
+            <div className="text-sm text-muted-foreground mr-2 flex items-center gap-2">
+              <span>
+                Selected:{" "}
+                <span className="font-medium text-primary">
+                  {currentProject.name}
+                </span>
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCurrentProject(null)}
+                className="h-6 px-2 text-xs"
+              >
+                <X className="h-3 w-3 mr-1" />
+                Clear
+              </Button>
+            </div>
+          )}
           {showInlineFolderInput && currentProject ? (
             <div className="flex gap-2">
-              <form onSubmit={folderForm.handleSubmit(handleInlineFolderSubmit)} className="flex gap-2">
+              <form
+                onSubmit={(e) => e.preventDefault()}
+                className="flex gap-2"
+              >
                 <Input
                   placeholder="Enter folder name"
                   disabled={createFolder.isPending}
                   {...folderForm.register("name")}
                   className="w-48"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      folderForm.handleSubmit(handleInlineFolderSubmit)();
+                    }
+                  }}
                 />
                 {folderForm.formState.errors.name && (
                   <p className="text-sm text-destructive">
@@ -265,6 +357,11 @@ export function ProjectsList() {
                   type="submit"
                   size="sm"
                   disabled={createFolder.isPending}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    folderForm.handleSubmit(handleInlineFolderSubmit)();
+                  }}
                 >
                   {createFolder.isPending ? "Creating..." : "Create"}
                 </Button>
@@ -272,7 +369,9 @@ export function ProjectsList() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     setShowInlineFolderInput(false);
                     folderForm.reset();
                   }}
@@ -305,6 +404,9 @@ export function ProjectsList() {
             project={project}
             onEdit={handleEditProject}
             onDelete={handleDeleteProject}
+            onManageUsers={handleManageUsers}
+            isSelected={currentProject?.id === project.id}
+            onSelect={() => handleSelectProject(project)}
           />
         ))}
       </div>
@@ -321,6 +423,19 @@ export function ProjectsList() {
         project={deletingProject}
         open={!!deletingProject}
         onOpenChange={(open) => !open && setDeletingProject(null)}
+      />
+
+      <UserManagementDialog
+        open={showUserManagement}
+        onOpenChange={setShowUserManagement}
+        title="Manage Project Users"
+        description="Add or remove users from this project"
+        users={projectUsers}
+        onAddUser={handleAddUserToProject}
+        onRemoveUser={handleRemoveUserFromProject}
+        isLoading={
+          addUserToProject.isPending || removeUserFromProject.isPending
+        }
       />
     </div>
   );
