@@ -9,6 +9,32 @@ export const setResources = (resources: Resources) => {
   resourcesInstance = resources;
 };
 
+// Function to check if user has a specific role on a resource
+export const checkUserHasRole = async (
+  resourceType: string,
+  roleName: string,
+  userId: string,
+  resourceId: string
+): Promise<boolean> => {
+  if (!resourcesInstance) {
+    throw new Error("Resources not initialized");
+  }
+
+  const resource = resourcesInstance[resourceType];
+  if (!resource) {
+    return false;
+  }
+
+  // Find the specific role
+  const role = resource.roles.find((r) => r.name === roleName);
+  if (!role) {
+    return false;
+  }
+
+  // Check if user has this role
+  return await role.condition(userId, resourceId);
+};
+
 // Function to check if user has any role that allows the action
 export const checkUserHasRoleForAction = async (
   resourceType: string,
