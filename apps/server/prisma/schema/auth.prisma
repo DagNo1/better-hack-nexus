@@ -8,6 +8,10 @@ model User {
   updatedAt     DateTime
   sessions      Session[]
   accounts      Account[]
+  projects      Project[]
+  folders       Folder[]
+  files         File[]
+  todos         Todo[]
 
   @@unique([email])
   @@map("user")

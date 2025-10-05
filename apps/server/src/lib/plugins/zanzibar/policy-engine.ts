@@ -72,7 +72,7 @@ export class PolicyEngine {
         };
       }
       // Evaluate the policy function with just userId and resourceId
-      const allowed = policyFunction(userId, resourceId);
+      const allowed = await policyFunction(userId, resourceId);
 
       const result: AuthorizationResult = {
         allowed,

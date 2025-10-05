@@ -13,20 +13,25 @@ datasource db {
 model Project {
   id        String   @id @default(cuid()) @map("_id")
   name      String
+  ownerId   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  owner   User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   files   File[]
   folders Folder[]
+  todos   Todo[]
 }
 
 model Folder {
   id        String   @id @map("_id")
   name      String
+  ownerId   String
   createdAt DateTime
   updatedAt DateTime
   projectId String?
 
+  owner   User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   project Project? @relation(fields: [projectId], references: [id])
   files   File[]
 }
@@ -34,11 +39,13 @@ model Folder {
 model File {
   id        String   @id @map("_id")
   name      String
+  ownerId   String
   projectId String?
   folderId  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  owner   User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   project Project? @relation(fields: [projectId], references: [id])
   folder  Folder?  @relation(fields: [folderId], references: [id])
 
