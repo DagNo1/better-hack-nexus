@@ -20,7 +20,8 @@ import {
   SelectValue,
 } from "@workspace/ui/components/select";
 import { X, UserPlus, Edit, Check } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { authClient } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { useCreateTestUser, useUpdateUser } from "@/hooks/user";
 
@@ -38,16 +39,16 @@ interface UserManagementDialogProps {
   title: string;
   description: string;
   users: User[];
-  onAddUser: (userId: string) => void;
+  onAddUser: (userId: string, role: string) => void;
   onRemoveUser: (userId: string) => void;
   isLoading?: boolean;
+  resourceType?: "project" | "folder";
 }
 
-const USER_ROLES = [
-  { value: "admin", label: "Admin" },
+const DEFAULT_USER_ROLES = [
+  { value: "owner", label: "Owner" },
   { value: "editor", label: "Editor" },
   { value: "viewer", label: "Viewer" },
-  { value: "guest", label: "Guest" },
 ];
 
 export function UserManagementDialog({
@@ -59,10 +60,51 @@ export function UserManagementDialog({
   onAddUser,
   onRemoveUser,
   isLoading = false,
+  resourceType = "project",
 }: UserManagementDialogProps) {
   const [userName, setUserName] = useState("");
+  const [newUserRole, setNewUserRole] = useState("viewer");
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editingRole, setEditingRole] = useState("");
+  const [availableRoles, setAvailableRoles] = useState(DEFAULT_USER_ROLES);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadRoles() {
+      try {
+        // Fallback to default roles if getResourceRoles is not available
+        if (
+          !authClient.zanzibar ||
+          typeof (authClient.zanzibar as any).getResourceRoles !== "function"
+        ) {
+          setAvailableRoles(DEFAULT_USER_ROLES);
+          if (!DEFAULT_USER_ROLES?.find((r) => r.value === newUserRole)) {
+            setNewUserRole(DEFAULT_USER_ROLES?.[0]?.value ?? "viewer");
+          }
+          return;
+        }
+        const resp = await (authClient.zanzibar as any).getResourceRoles({
+          resourceType,
+        });
+        const roles = ((resp as any)?.data?.roles ?? []).map((r: any) => ({
+          value: r.name,
+          label: r.name.charAt(0).toUpperCase() + r.name.slice(1),
+        }));
+        if (mounted && roles.length) {
+          setAvailableRoles(roles);
+          if (!roles.find((r: any) => r.value === newUserRole)) {
+            setNewUserRole(roles[0].value);
+          }
+        }
+      } catch (e) {
+        // fall back to defaults
+      }
+    }
+    loadRoles();
+    return () => {
+      mounted = false;
+    };
+  }, [resourceType]);
 
   const createTestUser = useCreateTestUser();
   const updateUser = useUpdateUser();
@@ -88,7 +130,7 @@ export function UserManagementDialog({
         email: `${userName.trim().toLowerCase().replace(/\s+/g, ".")}@test.local`,
       });
 
-      await onAddUser(newUser.id);
+      await onAddUser(newUser.id, newUserRole);
       setUserName("");
       toast.success(`User "${newUser.name}" added successfully!`);
     } catch (error) {
@@ -162,6 +204,25 @@ export function UserManagementDialog({
                   className="mt-1"
                 />
               </div>
+              <div>
+                <Label className="text-sm font-medium">Role</Label>
+                <Select
+                  value={newUserRole}
+                  onValueChange={setNewUserRole}
+                  disabled={isLoading}
+                >
+                  <SelectTrigger className="h-8 w-full text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableRoles.map((role) => (
+                      <SelectItem key={role.value} value={role.value}>
+                        {role.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <Button
                 onClick={handleAddUser}
                 disabled={isLoading || !userName.trim()}
@@ -213,7 +274,7 @@ export function UserManagementDialog({
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {USER_ROLES.map((role) => (
+                              {availableRoles.map((role: { value: string; label: string }) => (
                                 <SelectItem key={role.value} value={role.value}>
                                   {role.label}
                                 </SelectItem>
@@ -221,8 +282,10 @@ export function UserManagementDialog({
                             </SelectContent>
                           </Select>
                         ) : (
-                          <Badge >
-                            {USER_ROLES.find((role) => role.value === user.role)?.label || user.role}
+                          <Badge>
+                            {availableRoles.find(
+                              (role) => role.value === user.role
+                            )?.label || user.role}
                           </Badge>
                         )}
                       </div>
@@ -291,4 +354,4 @@ export function UserManagementDialog({
       </DialogContent>
     </Dialog>
   );
-  };
+}

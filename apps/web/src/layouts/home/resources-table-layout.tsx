@@ -40,43 +40,46 @@ export default function ResourcesTableLayout() {
     async function fetchResources() {
       setLoading(true);
       try {
-        const response: ApiResponse = await authClient.zanzibar.resources();
-        const resources = response.data.resources;
+        const response = await authClient.zanzibar.resources();
+        const resources = ((response as any)?.data?.resources ?? {}) as Record<
+          string,
+          ApiResource
+        >;
 
-        const tableWrappers: ResourceTableWrapper[] = Object.entries(
-          resources
+        const tableWrappers: ResourceTableWrapper[] = (
+          Object.entries(resources) as Array<[string, ApiResource]>
         ).map(([resourceKey, resource]) => {
-          // Build columns (now representing roles)
-          const columns: ResourceColumnDef[] = resource.roles.map((role) => ({
-            key: role.name,
-            header: role.name.toUpperCase(),
-            type: "checkbox" as const,
-          }));
+          // First column shows the action label on the left
+          const columns: ResourceColumnDef[] = [
+            {
+              key: "id",
+              header: "ACTION",
+              type: "text",
+            },
+          ];
 
-          // Build roles (for the role column headers)
-          const roles = resource.roles.map((role) => ({
+          // Build roles (these will render as checkbox columns via generator)
+          const roles = resource.roles.map((role: ApiRole) => ({
             id: role.name,
             name: role.name,
             label: role.name.toUpperCase(),
           }));
 
           // Build rows (now representing actions)
-          const rows: ResourceTableData[] = resource.actions.map((action) => {
-            const row: ResourceTableData = { id: action, roles: {} };
-            // Set permissions for each role
-            resource.roles.forEach((role) => {
-              row[role.name] = role.actions.includes(action);
-            });
-            // Set role indicators (which roles have this action)
-            row.roles = resource.roles.reduce(
-              (acc, r) => {
-                acc[r.name] = r.actions.includes(action);
-                return acc;
-              },
-              {} as Record<string, boolean>
-            );
-            return row;
-          });
+          const rows: ResourceTableData[] = resource.actions.map(
+            (action: string) => {
+              const row: ResourceTableData = { id: action, roles: {} };
+              // Set role indicators (which roles have this action)
+              row.roles = resource.roles.reduce(
+                (acc: Record<string, boolean>, r: ApiRole) => {
+                  acc[r.name] = r.actions.includes(action);
+                  return acc;
+                },
+                {} as Record<string, boolean>
+              );
+              return row;
+            }
+          );
 
           return {
             title: resourceKey.toUpperCase(),
@@ -132,9 +135,11 @@ export default function ResourcesTableLayout() {
         <div key={table.title}>
           <h2 className="text-xl font-semibold mb-4">{table.title}</h2>
           <DataTable
-            columns={allColumns[index]}
+            columns={allColumns[index] ?? []}
             data={table.data}
             isLoading={loading}
+            enableRowSelection={false}
+            enableActions={false}
           />
         </div>
       ))}

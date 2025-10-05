@@ -24,7 +24,14 @@ export const resources: Resources = {
         actions: ["read", "edit"],
         condition: async (userId: string, resourceId: string) => {
           const project = await prisma.project.findFirst({
-            where: { id: resourceId, ownerId: userId },
+            where: {
+              id: resourceId,
+              members: {
+                some: {
+                  userId: userId,
+                },
+              },
+            },
           });
           return !!project;
         },
@@ -60,30 +67,6 @@ export const resources: Resources = {
             return await checkUserHasResourceRole(
               "project",
               "owner",
-              userId,
-              folder.projectId
-            );
-          }
-
-          return false;
-        },
-      },
-      {
-        name: "editor",
-        actions: ["read", "edit"],
-        condition: async (userId: string, resourceId: string) => {
-          // Check if user has project editor role for the folder's project
-          const folder = await prisma.folder.findFirst({
-            select: { projectId: true },
-            where: {
-              id: resourceId,
-            },
-          });
-
-          if (folder?.projectId) {
-            return await checkUserHasResourceRole(
-              "project",
-              "editor",
               userId,
               folder.projectId
             );

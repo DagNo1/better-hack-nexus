@@ -9,8 +9,8 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
-  projects      Project[]
-  folders       Folder[]
+  projects      ProjectMember[]
+  folders       FolderMember[]
 
   @@unique([email])
   @@map("user")

@@ -4,4 +4,7 @@ import { ZanzibarClientPlugin } from "../../../server/src/lib/plugins/zanzibar/c
 export const authClient = createAuthClient({
   baseURL: process.env.NEXT_PUBLIC_SERVER_URL,
   plugins: [ZanzibarClientPlugin()],
+  fetchOptions: {
+    credentials: "include",
+  },
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { UserManagementDialog } from "@/components/dialogs/user-management-dialog";
+import { authClient } from "@/lib/auth-client";
 import {
   useAddUserToProject,
   useCreateProject,
@@ -20,7 +21,7 @@ import {
 } from "@workspace/ui/components/card";
 import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Plus, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ProjectCard } from "../../components/cards/project-card";
 import { DeleteProjectDialog } from "../forms/delete-project-dialog";
@@ -80,6 +81,23 @@ export function ProjectsList() {
   const [showUserManagement, setShowUserManagement] = useState(false);
   const [selectedProjectForUsers, setSelectedProjectForUsers] =
     useState<Project | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Load current session user id
+  useEffect(() => {
+    let mounted = true;
+    (authClient as any).session
+      .get()
+      .then((res: any) => {
+        if (!mounted) return;
+        const uid = res?.data?.user?.id ?? null;
+        setCurrentUserId(uid);
+      })
+      .catch(() => setCurrentUserId(null));
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // User management hooks
   const addUserToProject = useAddUserToProject();
@@ -114,14 +132,12 @@ export function ProjectsList() {
   const handleFormSubmit = async (data: ProjectFormData) => {
     try {
       if (formMode === "create") {
-        await createProject.mutateAsync(data);
-        toast.success("Project created successfully!");
+        await createProject.mutateAsync({ name: data.name } as any);
       } else if (formMode === "edit" && currentProject) {
         await updateProject.mutateAsync({
           id: currentProject.id,
           name: data.name,
         });
-        toast.success("Project updated successfully!");
       }
     } catch (error) {
       console.error("Form submission error:", error);
@@ -138,11 +154,12 @@ export function ProjectsList() {
     setShowUserManagement(true);
   };
 
-  const handleAddUserToProject = async (userId: string) => {
+  const handleAddUserToProject = async (userId: string, role: string) => {
     if (!selectedProjectForUsers?.id) return;
     await addUserToProject.mutateAsync({
       projectId: selectedProjectForUsers.id,
       userId,
+      role,
     });
   };
 
@@ -267,6 +284,7 @@ export function ProjectsList() {
         title="Manage Project Users"
         description="Add or remove users from this project"
         users={projectUsers}
+        resourceType="project"
         onAddUser={handleAddUserToProject}
         onRemoveUser={handleRemoveUserFromProject}
         isLoading={

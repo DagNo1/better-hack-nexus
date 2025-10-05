@@ -144,6 +144,7 @@ export const folderRouter = router({
       z.object({
         folderId: z.string(),
         userId: z.string(),
+        role: z.string().default("viewer"),
       })
     )
     .mutation(async ({ input }) => {
@@ -172,13 +173,16 @@ export const folderRouter = router({
           });
         }
 
-        // Add user to folder
-        await prisma.folder.update({
-          where: { id: input.folderId },
-          data: {
-            users: {
-              connect: { id: input.userId },
-            },
+        // Upsert membership with role
+        await prisma.folderMember.upsert({
+          where: {
+            folderId_userId: { folderId: input.folderId, userId: input.userId },
+          },
+          update: { role: input.role },
+          create: {
+            folderId: input.folderId,
+            userId: input.userId,
+            role: input.role,
           },
         });
 
@@ -201,12 +205,9 @@ export const folderRouter = router({
     )
     .mutation(async ({ input }) => {
       try {
-        await prisma.folder.update({
-          where: { id: input.folderId },
-          data: {
-            users: {
-              disconnect: { id: input.userId },
-            },
+        await prisma.folderMember.delete({
+          where: {
+            folderId_userId: { folderId: input.folderId, userId: input.userId },
           },
         });
 
@@ -224,19 +225,7 @@ export const folderRouter = router({
     .query(async ({ input }) => {
       const folder = await prisma.folder.findUnique({
         where: { id: input.folderId },
-        include: {
-          users: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-              role: true,
-            },
-          },
-        },
       });
-
       if (!folder) {
         throw new TRPCError({
           code: "NOT_FOUND",
@@ -244,6 +233,19 @@ export const folderRouter = router({
         });
       }
 
-      return folder.users;
+      const members = await prisma.folderMember.findMany({
+        where: { folderId: input.folderId },
+        include: {
+          user: { select: { id: true, name: true, email: true, image: true } },
+        },
+      });
+
+      return members.map((m) => ({
+        id: m.user.id,
+        name: m.user.name,
+        email: m.user.email,
+        image: m.user.image,
+        role: m.role,
+      }));
     }),
 });

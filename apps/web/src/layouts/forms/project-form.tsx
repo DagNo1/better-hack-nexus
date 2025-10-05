@@ -151,13 +151,18 @@ export function ProjectForm({
     }
 
     try {
-      await createFolder.mutateAsync({
+      const created = await createFolder.mutateAsync({
         name: data.name,
         projectId: project.id,
       });
       folderForm.reset();
       setShowInlineFolderInput(false);
       toast.success(`Folder "${data.name}" created successfully!`);
+      // After create, open user management for the new folder
+      if (created?.id) {
+        setSelectedFolderForUsers(created.id);
+        setShowUserManagement(true);
+      }
     } catch (error: any) {
       console.error("Failed to create folder:", error);
 
@@ -188,7 +193,7 @@ export function ProjectForm({
   };
 
   const handleDeleteFolder = async (folderId: string) => {
-    const folder = folders?.find(f => f.id === folderId);
+    const folder = folders?.find((f) => f.id === folderId);
     if (folder) {
       setSelectedFolder(folder);
       setShowDeleteFolderDialog(true);
@@ -205,11 +210,12 @@ export function ProjectForm({
     setShowUserManagement(true);
   };
 
-  const handleAddUserToProject = async (userId: string) => {
+  const handleAddUserToProject = async (userId: string, role: string) => {
     if (!project?.id) return;
     await addUserToProject.mutateAsync({
       projectId: project.id,
       userId,
+      role,
     });
   };
 
@@ -221,11 +227,12 @@ export function ProjectForm({
     });
   };
 
-  const handleAddUserToFolder = async (userId: string) => {
+  const handleAddUserToFolder = async (userId: string, role: string) => {
     if (!selectedFolderForUsers) return;
     await addUserToFolder.mutateAsync({
       folderId: selectedFolderForUsers,
       userId,
+      role,
     });
   };
 
@@ -335,7 +342,7 @@ export function ProjectForm({
                       {...folderForm.register("name")}
                       className="w-full"
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
+                        if (e.key === "Enter") {
                           e.preventDefault();
                           folderForm.handleSubmit(handleInlineFolderSubmit)();
                         }
@@ -416,7 +423,7 @@ export function ProjectForm({
         </form>
 
         {/* User Management Dialog */}
-        <UserManagementDialog
+          <UserManagementDialog
           open={showUserManagement}
           onOpenChange={setShowUserManagement}
           title={
@@ -430,6 +437,7 @@ export function ProjectForm({
               : "Add or remove users from this project"
           }
           users={selectedFolderForUsers ? folderUsers : projectUsers}
+            resourceType={selectedFolderForUsers ? "folder" : "project"}
           onAddUser={
             selectedFolderForUsers
               ? handleAddUserToFolder

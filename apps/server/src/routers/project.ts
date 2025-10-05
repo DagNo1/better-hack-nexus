@@ -1,7 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import z from "zod";
 import prisma from "../db";
-import { publicProcedure, router } from "../lib/trpc";
+import { protectedProcedure, publicProcedure, router } from "../lib/trpc";
 
 export const projectRouter = router({
   getAll: publicProcedure.query(async () => {
@@ -45,14 +45,35 @@ export const projectRouter = router({
       }
     }),
 
-  create: publicProcedure
+  create: protectedProcedure
     .input(z.object({ name: z.string().min(1) }))
-    .mutation(async ({ input }) => {
-      return await prisma.project.create({
+    .mutation(async ({ input, ctx }) => {
+      const ownerId = ctx.session?.user?.id;
+      if (!ownerId) {
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "Not signed in" });
+      }
+
+      const project = await prisma.project.create({
         data: {
           name: input.name,
+          ownerId,
         },
       });
+
+      // Auto-assign creator as owner in membership table
+      await prisma.projectMember.upsert({
+        where: {
+          projectId_userId: { projectId: project.id, userId: ownerId },
+        },
+        update: { role: "owner" },
+        create: {
+          projectId: project.id,
+          userId: ownerId,
+          role: "owner",
+        },
+      });
+
+      return project;
     }),
 
   update: publicProcedure
@@ -167,6 +188,7 @@ export const projectRouter = router({
       z.object({
         projectId: z.string(),
         userId: z.string(),
+        role: z.string().default("viewer"),
       })
     )
     .mutation(async ({ input }) => {
@@ -195,13 +217,19 @@ export const projectRouter = router({
           });
         }
 
-        // Add user to project
-        await prisma.project.update({
-          where: { id: input.projectId },
-          data: {
-            users: {
-              connect: { id: input.userId },
+        // Upsert membership with role
+        await prisma.projectMember.upsert({
+          where: {
+            projectId_userId: {
+              projectId: input.projectId,
+              userId: input.userId,
             },
+          },
+          update: { role: input.role },
+          create: {
+            projectId: input.projectId,
+            userId: input.userId,
+            role: input.role,
           },
         });
 
@@ -224,11 +252,11 @@ export const projectRouter = router({
     )
     .mutation(async ({ input }) => {
       try {
-        await prisma.project.update({
-          where: { id: input.projectId },
-          data: {
-            users: {
-              disconnect: { id: input.userId },
+        await prisma.projectMember.delete({
+          where: {
+            projectId_userId: {
+              projectId: input.projectId,
+              userId: input.userId,
             },
           },
         });
@@ -247,19 +275,7 @@ export const projectRouter = router({
     .query(async ({ input }) => {
       const project = await prisma.project.findUnique({
         where: { id: input.projectId },
-        include: {
-          users: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              image: true,
-              role: true,
-            },
-          },
-        },
       });
-
       if (!project) {
         throw new TRPCError({
           code: "NOT_FOUND",
@@ -267,6 +283,19 @@ export const projectRouter = router({
         });
       }
 
-      return project.users;
+      const members = await prisma.projectMember.findMany({
+        where: { projectId: input.projectId },
+        include: {
+          user: { select: { id: true, name: true, email: true, image: true } },
+        },
+      });
+
+      return members.map((m) => ({
+        id: m.user.id,
+        name: m.user.name,
+        email: m.user.email,
+        image: m.user.image,
+        role: m.role,
+      }));
     }),
 });

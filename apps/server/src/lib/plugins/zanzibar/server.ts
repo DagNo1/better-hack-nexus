@@ -3,6 +3,7 @@ import { createAuthEndpoint, sessionMiddleware } from "better-auth/api";
 import { initializePolicyEngine, policyEngineInstance } from "./policy-engine";
 import type { ResourcePolicies, Resources } from "./types";
 import { z } from "zod/v3";
+import prisma from "@/db";
 
 export const ZanzibarServerPlugin = (
   policies: ResourcePolicies,
@@ -154,51 +155,6 @@ export const ZanzibarServerPlugin = (
         }
       ),
 
-      // Get all actions for a specific resource type
-      getResourceActions: createAuthEndpoint(
-        "/zanzibar/resources/:resourceType/actions",
-        {
-          method: "GET",
-          use: [sessionMiddleware],
-        },
-        async (ctx) => {
-          try {
-            const resourceType = ctx.params?.resourceType;
-
-            if (!resourceType) {
-              return ctx.json(
-                { error: "Resource type is required" },
-                { status: 400 }
-              );
-            }
-
-            if (!policyEngineInstance) {
-              return ctx.json(
-                { error: "Zanzibar not initialized with policies" },
-                { status: 500 }
-              );
-            }
-
-            const actions =
-              policyEngineInstance.getResourceActions(resourceType);
-
-            if (!actions) {
-              return ctx.json(
-                { error: `Resource type '${resourceType}' not found` },
-                { status: 404 }
-              );
-            }
-
-            return ctx.json({ resourceType, actions });
-          } catch (error) {
-            return ctx.json(
-              { error: "Internal server error" },
-              { status: 500 }
-            );
-          }
-        }
-      ),
-
       // Get all roles for a specific resource type
       getResourceRoles: createAuthEndpoint(
         "/zanzibar/resources/:resourceType/roles",
@@ -243,196 +199,15 @@ export const ZanzibarServerPlugin = (
         }
       ),
 
-      // Get actions for a specific role on a resource type
-      getRoleActions: createAuthEndpoint(
-        "/zanzibar/resources/:resourceType/roles/:roleName/actions",
-        {
-          method: "GET",
-          use: [sessionMiddleware],
-        },
-        async (ctx) => {
-          try {
-            const resourceType = ctx.params?.resourceType;
-            const roleName = ctx.params?.roleName;
-
-            if (!resourceType || !roleName) {
-              return ctx.json(
-                { error: "Resource type and role name are required" },
-                { status: 400 }
-              );
-            }
-
-            if (!policyEngineInstance) {
-              return ctx.json(
-                { error: "Zanzibar not initialized with policies" },
-                { status: 500 }
-              );
-            }
-
-            const actions = policyEngineInstance.getRoleActions(
-              resourceType,
-              roleName
-            );
-
-            if (actions === null) {
-              return ctx.json(
-                { error: `Resource type '${resourceType}' not found` },
-                { status: 404 }
-              );
-            }
-
-            if (actions === undefined) {
-              return ctx.json(
-                {
-                  error: `Role '${roleName}' not found on resource type '${resourceType}'`,
-                },
-                { status: 404 }
-              );
-            }
-
-            return ctx.json({ resourceType, roleName, actions });
-          } catch (error) {
-            return ctx.json(
-              { error: "Internal server error" },
-              { status: 500 }
-            );
-          }
-        }
-      ),
-
-      // Get all roles for a user on a specific resource
-      getUserRoles: createAuthEndpoint(
-        "/zanzibar/users/:userId/roles",
-        {
-          method: "POST",
-          use: [sessionMiddleware],
-          body: z.object({
-            resourceType: z.string(),
-            resourceId: z.string(),
-          }),
-        },
-        async (ctx) => {
-          try {
-            const userId = ctx.params?.userId;
-            const body = await ctx.request?.json();
-            const { resourceType, resourceId } = body;
-
-            if (!userId || !resourceType || !resourceId) {
-              return ctx.json(
-                {
-                  error: "User ID, resource type, and resource ID are required",
-                },
-                { status: 400 }
-              );
-            }
-
-            if (!policyEngineInstance) {
-              return ctx.json(
-                { error: "Zanzibar not initialized with policies" },
-                { status: 500 }
-              );
-            }
-
-            const userRoles = await policyEngineInstance.getUserRoles(
-              userId,
-              resourceType,
-              resourceId
-            );
-
-            if (!userRoles) {
-              return ctx.json(
-                { error: `Resource type '${resourceType}' not found` },
-                { status: 404 }
-              );
-            }
-
-            return ctx.json(userRoles);
-          } catch (error) {
-            return ctx.json(
-              { error: "Internal server error" },
-              { status: 500 }
-            );
-          }
-        }
-      ),
-
-      // Get all roles for a user across all resource types
-      getAllUserRoles: createAuthEndpoint(
-        "/zanzibar/users/:userId/roles/all",
-        {
-          method: "GET",
-          use: [sessionMiddleware],
-        },
-        async (ctx) => {
-          try {
-            const userId = ctx.params?.userId;
-
-            if (!userId) {
-              return ctx.json(
-                { error: "User ID is required" },
-                { status: 400 }
-              );
-            }
-
-            if (!policyEngineInstance) {
-              return ctx.json(
-                { error: "Zanzibar not initialized with policies" },
-                { status: 500 }
-              );
-            }
-
-            const allUserRoles =
-              await policyEngineInstance.getAllUserRoles(userId);
-
-            return ctx.json({ userId, roles: allUserRoles });
-          } catch (error) {
-            return ctx.json(
-              { error: "Internal server error" },
-              { status: 500 }
-            );
-          }
-        }
-      ),
-
-      // Get user-resource matrix for specific users and resources
-      getUserResourceMatrix: createAuthEndpoint(
+      // Returns users with their roles for each resource id (auto-enumerates resources/users)
+      getUsersGroupedByResource: createAuthEndpoint(
         "/zanzibar/matrix",
         {
-          method: "POST",
+          method: "GET",
           use: [sessionMiddleware],
-          body: z.object({
-            userIds: z.array(z.string()),
-            resources: z.array(
-              z.object({
-                resourceType: z.string(),
-                resourceId: z.string(),
-              })
-            ),
-          }),
         },
         async (ctx) => {
           try {
-            const body = await ctx.request?.json();
-            const { userIds, resources } = body;
-
-            if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
-              return ctx.json(
-                { error: "User IDs array is required and cannot be empty" },
-                { status: 400 }
-              );
-            }
-
-            if (
-              !resources ||
-              !Array.isArray(resources) ||
-              resources.length === 0
-            ) {
-              return ctx.json(
-                { error: "Resources array is required and cannot be empty" },
-                { status: 400 }
-              );
-            }
-
             if (!policyEngineInstance) {
               return ctx.json(
                 { error: "Zanzibar not initialized with policies" },
@@ -440,70 +215,66 @@ export const ZanzibarServerPlugin = (
               );
             }
 
-            const matrix = await policyEngineInstance.getUserResourceMatrix(
-              userIds,
-              resources
-            );
+            // Enumerate all users and resources
+            const [users, projects, folders] = await Promise.all([
+              prisma.user.findMany({ select: { id: true }, include:{} }),
+              prisma.project.findMany({ select: { id: true } }),
+              prisma.folder.findMany({ select: { id: true } }),
+            ]);
 
-            return ctx.json(matrix);
-          } catch (error) {
-            return ctx.json(
-              { error: "Internal server error" },
-              { status: 500 }
-            );
-          }
-        }
-      ),
+            const grouped: Record<
+              string,
+              Array<{
+                resourceId: string;
+                users: Array<{ userId: string; roles: string[] }>;
+              }>
+            > = { project: [], folder: [] } as any;
 
-      // Get user-resource matrix for all users and all resources by type
-      getAllUserResourceMatrix: createAuthEndpoint(
-        "/zanzibar/matrix/all",
-        {
-          method: "POST",
-          use: [sessionMiddleware],
-          body: z.object({
-            userIds: z.array(z.string()),
-            resourceIdsByType: z.record(z.array(z.string())),
-          }),
-        },
-        async (ctx) => {
-          try {
-            const body = await ctx.request?.json();
-            const { userIds, resourceIdsByType } = body;
-
-            if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
-              return ctx.json(
-                { error: "User IDs array is required and cannot be empty" },
-                { status: 400 }
-              );
+            // Projects
+            for (const p of projects) {
+              const row: {
+                resourceId: string;
+                users: Array<{ userId: string; roles: string[] }>;
+              } = {
+                resourceId: p.id,
+                users: [],
+              };
+              for (const u of users) {
+                const res = await policyEngineInstance.getUserRoles(
+                  u.id,
+                  "project",
+                  p.id
+                );
+                const roleNames = res?.roles.map((r) => r.name) ?? [];
+                if (roleNames.length > 0)
+                  row.users.push({ userId: u.id, roles: roleNames });
+              }
+              if (row.users.length > 0) grouped.project.push(row);
             }
 
-            if (
-              !resourceIdsByType ||
-              Object.keys(resourceIdsByType).length === 0
-            ) {
-              return ctx.json(
-                {
-                  error:
-                    "Resource IDs by type object is required and cannot be empty",
-                },
-                { status: 400 }
-              );
+            // Folders
+            for (const f of folders) {
+              const row: {
+                resourceId: string;
+                users: Array<{ userId: string; roles: string[] }>;
+              } = {
+                resourceId: f.id,
+                users: [],
+              };
+              for (const u of users) {
+                const res = await policyEngineInstance.getUserRoles(
+                  u.id,
+                  "folder",
+                  f.id
+                );
+                const roleNames = res?.roles.map((r) => r.name) ?? [];
+                if (roleNames.length > 0)
+                  row.users.push({ userId: u.id, roles: roleNames });
+              }
+              if (row.users.length > 0) grouped.folder.push(row);
             }
 
-            if (!policyEngineInstance) {
-              return ctx.json(
-                { error: "Zanzibar not initialized with policies" },
-                { status: 500 }
-              );
-            }
-
-            const matrix = await policyEngineInstance.getAllUserResourceMatrix(
-              userIds,
-              resourceIdsByType
-            );
-
-            return ctx.json(matrix);
+            return ctx.json(grouped);
           } catch (error) {
             return ctx.json(
               { error: "Internal server error" },

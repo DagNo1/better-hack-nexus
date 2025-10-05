@@ -1,6 +1,9 @@
 "use client";
 import { ProjectsList } from "@/layouts/home/projects-list";
 import ResourcesTableLayout from "@/layouts/home/resources-table-layout";
+import UsersTableLayout from "@/layouts/home/user-table-layout";
+import { ProjectUsersTable } from "@/layouts/home/project-users-table";
+import { FolderUsersTable } from "@/layouts/home/folder-users-table";
 import { authClient } from "@/lib/auth-client";
 import {
   RedirectToSignIn,
@@ -10,7 +13,7 @@ import {
 } from "@daveyplate/better-auth-ui";
 
 export default function Home() {
-  authClient.zanzibar.resources().then((resources) => {
+  authClient.zanzibar.matrix().then((resources) => {
     console.log(resources);
   });
   return (
@@ -34,6 +37,10 @@ export default function Home() {
         <SignedIn>
           <ProjectsList />
           <ResourcesTableLayout />
+          <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <ProjectUsersTable />
+            <FolderUsersTable />
+          </div>
         </SignedIn>
         <SignedOut>
           <div className="flex flex-col items-center justify-center h-96 text-center">
