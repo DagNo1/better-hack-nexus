@@ -1,16 +1,24 @@
 "use client";
+import { ProjectsList } from "@/layouts/home/projects-list";
+import { authClient } from "@/lib/auth-client";
 import {
   RedirectToSignIn,
   SignedIn,
   SignedOut,
   UserButton,
 } from "@daveyplate/better-auth-ui";
-import { ProjectsList } from "@/layouts/home/projects-list";
 
 export default function Home() {
+  authClient.zanzibar.checkDetailed({
+    action: "read",
+    resourceType: "user",
+    resourceId: "1",
+    options: {
+      include_details: true,
+    },
+  });
   return (
     <div className="min-h-screen bg-transparent w-3xl relative">
-   
       {/* Header */}
       <header className="border-b">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">

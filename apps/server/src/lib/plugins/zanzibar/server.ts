@@ -1,13 +1,17 @@
 import { type BetterAuthPlugin } from "better-auth";
 import { createAuthEndpoint, sessionMiddleware } from "better-auth/api";
 import { initializePolicyEngine, policyEngineInstance } from "./policy-engine";
-import type { ResourcePolicies } from "./types";
+import type { ResourcePolicies, Resources } from "./types";
+import { z } from "zod/v3";
 
-export const ZanzibarServerPlugin = (policies?: ResourcePolicies) => {
+export const ZanzibarServerPlugin = (
+  policies: ResourcePolicies,
+  resources: Resources
+) => {
   const pluginId = "zanzibar-plugin";
 
-  if (policies && !policyEngineInstance) {
-    initializePolicyEngine(policies);
+  if (!policyEngineInstance) {
+    initializePolicyEngine(policies, resources);
   }
 
   return {
@@ -29,7 +33,15 @@ export const ZanzibarServerPlugin = (policies?: ResourcePolicies) => {
       // Authorization check endpoint
       check: createAuthEndpoint(
         "/zanzibar/check",
-        { method: "POST", use: [sessionMiddleware] },
+        {
+          method: "POST",
+          use: [sessionMiddleware],
+          body: z.object({
+            action: z.string(),
+            resourceType: z.string(),
+            resourceId: z.string(),
+          }),
+        },
         async (ctx) => {
           try {
             const body = await ctx.request?.json();
@@ -63,13 +75,23 @@ export const ZanzibarServerPlugin = (policies?: ResourcePolicies) => {
       // Detailed authorization check endpoint
       checkDetailed: createAuthEndpoint(
         "/zanzibar/check-detailed",
-        { method: "POST", use: [sessionMiddleware] },
+        {
+          method: "POST",
+          use: [sessionMiddleware],
+          body: z.object({
+            action: z.string(),
+            resourceType: z.string(),
+            resourceId: z.string(),
+            options: z.object({
+              include_details: z.boolean().optional(),
+            }),
+          }),
+        },
         async (ctx) => {
           try {
-            const body = await ctx.request?.json();
+            const body = await ctx.body;
             const { action, resourceType, resourceId, options = {} } = body;
             const userId = ctx.context.session?.user.id;
-
             if (!action || !resourceType || !resourceId) {
               return ctx.json(
                 {
@@ -113,4 +135,5 @@ export type {
   AuthorizationResult,
   PolicyFunction,
   ResourcePolicies,
+  Resources,
 } from "./types";
