@@ -4,6 +4,9 @@ import type {
   ResourcePolicies,
   Resources,
   ResourceRoleResponse,
+  UserRoleResponse,
+  UserResourceMatrix,
+  UserResourceMatrixEntry,
 } from "./types";
 
 // Global policy engine instance
@@ -216,5 +219,123 @@ export class PolicyEngine {
     }
 
     return role.actions;
+  }
+
+  /**
+   * Get all roles for a user on a specific resource
+   */
+  async getUserRoles(
+    userId: string,
+    resourceType: string,
+    resourceId: string
+  ): Promise<UserRoleResponse | null> {
+    const resource = this.resources[resourceType];
+    if (!resource) {
+      return null;
+    }
+
+    const userRoles: ResourceRoleResponse[] = [];
+
+    // Check each role to see if the user has it
+    for (const role of resource.roles) {
+      const hasRole = await role.condition(userId, resourceId);
+      if (hasRole) {
+        userRoles.push({
+          name: role.name,
+          actions: role.actions,
+        });
+      }
+    }
+
+    return {
+      resourceType,
+      resourceId,
+      roles: userRoles,
+    };
+  }
+
+  /**
+   * Get all roles for a user across all resource types
+   */
+  async getAllUserRoles(userId: string): Promise<UserRoleResponse[]> {
+    const allUserRoles: UserRoleResponse[] = [];
+
+    // For each resource type, we need to check against all possible resource IDs
+    // This is a simplified implementation - in practice, you might want to pass
+    // specific resource IDs or implement a different strategy
+    for (const [resourceType, resource] of Object.entries(this.resources)) {
+      // Note: This is a placeholder implementation
+      // In a real scenario, you'd need to know which resource IDs to check
+      // For now, we'll return an empty array for each resource type
+      // The client should call getUserRoles with specific resource IDs
+      allUserRoles.push({
+        resourceType,
+        resourceId: "*", // Placeholder - indicates all resources of this type
+        roles: [],
+      });
+    }
+
+    return allUserRoles;
+  }
+
+  /**
+   * Get user-resource matrix for all users and resources
+   * This method requires a list of users and resources to check
+   */
+  async getUserResourceMatrix(
+    userIds: string[],
+    resources: Array<{ resourceType: string; resourceId: string }>
+  ): Promise<UserResourceMatrix> {
+    const matrix: UserResourceMatrixEntry[] = [];
+
+    // Check each user against each resource
+    for (const userId of userIds) {
+      for (const resource of resources) {
+        const userRoles = await this.getUserRoles(
+          userId,
+          resource.resourceType,
+          resource.resourceId
+        );
+
+        if (userRoles) {
+          matrix.push({
+            userId,
+            resourceType: resource.resourceType,
+            resourceId: resource.resourceId,
+            roles: userRoles.roles,
+          });
+        }
+      }
+    }
+
+    return {
+      users: userIds,
+      resources,
+      matrix,
+    };
+  }
+
+  /**
+   * Get user-resource matrix for all users and all possible resources
+   * This is a more comprehensive version that checks against all resource types
+   * Note: This requires knowing all possible resource IDs for each type
+   */
+  async getAllUserResourceMatrix(
+    userIds: string[],
+    resourceIdsByType: Record<string, string[]>
+  ): Promise<UserResourceMatrix> {
+    const allResources: Array<{ resourceType: string; resourceId: string }> =
+      [];
+
+    // Build the complete list of resources to check
+    for (const [resourceType, resourceIds] of Object.entries(
+      resourceIdsByType
+    )) {
+      for (const resourceId of resourceIds) {
+        allResources.push({ resourceType, resourceId });
+      }
+    }
+
+    return this.getUserResourceMatrix(userIds, allResources);
   }
 }

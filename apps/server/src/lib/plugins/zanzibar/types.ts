@@ -23,6 +23,31 @@ export interface ResourceRoleResponse {
   actions: string[];
 }
 
+// User role response for a specific resource
+export interface UserRoleResponse {
+  resourceType: string;
+  resourceId: string;
+  roles: ResourceRoleResponse[];
+}
+
+// User resource matrix entry
+export interface UserResourceMatrixEntry {
+  userId: string;
+  resourceType: string;
+  resourceId: string;
+  roles: ResourceRoleResponse[];
+}
+
+// Complete user-resource matrix
+export interface UserResourceMatrix {
+  users: string[];
+  resources: Array<{
+    resourceType: string;
+    resourceId: string;
+  }>;
+  matrix: UserResourceMatrixEntry[];
+}
+
 // Resource definition with actions and roles
 export interface ResourceDefinition {
   actions: string[];
