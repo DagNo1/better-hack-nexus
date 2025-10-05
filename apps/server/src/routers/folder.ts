@@ -10,8 +10,7 @@ export const folderRouter = router({
 				createdAt: "desc",
 			},
 			include: {
-				project: true,
-				files: true,
+				project: true
 			},
 		});
 	}),
@@ -24,7 +23,6 @@ export const folderRouter = router({
 					where: { id: input.id },
 					include: {
 						project: true,
-						files: true,
 					},
 				});
 			} catch (error) {
@@ -44,7 +42,7 @@ export const folderRouter = router({
 					createdAt: "desc",
 				},
 				include: {
-					files: true,
+					project: true,
 				},
 			});
 		}),
@@ -52,16 +50,17 @@ export const folderRouter = router({
 	create: publicProcedure
 		.input(z.object({ name: z.string().min(1), projectId: z.string().optional() }))
 		.mutation(async ({ input }) => {
-			const data = {
+			const data: { name: string; projectId?: string } = {
 				name: input.name,
-			} as const;
+			};
 
 			if (input.projectId) {
-				(data as any).projectId = input.projectId;
+				data.projectId = input.projectId;
 			}
 
+			
 			return await prisma.folder.create({
-				data: data as any,
+				data,
 			});
 		}),
 
@@ -69,17 +68,17 @@ export const folderRouter = router({
 		.input(z.object({ id: z.string(), name: z.string().min(1), projectId: z.string().optional() }))
 		.mutation(async ({ input }) => {
 			try {
-				const data = {
+				const data: { name: string; projectId?: string } = {
 					name: input.name,
-				} as const;
+				};
 
 				if (input.projectId !== undefined) {
-					(data as any).projectId = input.projectId;
+					data.projectId = input.projectId;
 				}
 
 				return await prisma.folder.update({
 					where: { id: input.id },
-					data: data as any,
+					data,
 				});
 			} catch (error) {
 				throw new TRPCError({

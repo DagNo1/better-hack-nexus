@@ -2,14 +2,12 @@ import { trpc } from "@/utils/trpc";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-
 // Query hooks
 export const useGetProjects = () =>
   useQuery(trpc.project.getAll.queryOptions());
 
 export const useGetProjectById = (id: string) =>
   useQuery(trpc.project.getById.queryOptions({ id }));
-
 
 // Mutation hooks
 export const useCreateProject = () => {
@@ -19,6 +17,12 @@ export const useCreateProject = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: trpc.project.getAll.queryKey(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: trpc.folder.getAll.queryKey(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: trpc.folder.getById.queryKey(),
       });
       toast.success("Project created successfully");
     },

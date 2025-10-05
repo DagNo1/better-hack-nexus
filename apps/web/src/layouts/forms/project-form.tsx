@@ -1,12 +1,29 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import {
+  useCreateFolder,
+  useDeleteFolder,
+  useGetFoldersByProject,
+  useUpdateFolder,
+} from "@/hooks/folder";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@workspace/ui/components/button";
 import { Input } from "@workspace/ui/components/input";
 import { Label } from "@workspace/ui/components/label";
-import type { Project, ProjectFormData } from "@/types/project";
+import { Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { z } from "zod";
+import type { Project, ProjectFormData, Folder } from "@/types/project";
+import { FolderItem } from "./folder-item";
 
+// Form validation schema for inline folder creation
+const folderFormSchema = z.object({
+  name: z.string().min(1, "Folder name is required").trim(),
+});
+
+type FolderFormData = z.infer<typeof folderFormSchema>;
 interface ProjectFormProps {
   mode: "create" | "edit";
   project?: Project | null;
@@ -25,6 +42,23 @@ export function ProjectForm({
   isLoading = false,
 }: ProjectFormProps) {
   const [name, setName] = useState("");
+  const [showInlineFolderInput, setShowInlineFolderInput] = useState(false);
+
+  const { data: folders, isLoading: foldersLoading } = useGetFoldersByProject(
+    project?.id || ""
+  );
+
+  const createFolder = useCreateFolder();
+  const updateFolder = useUpdateFolder();
+  const deleteFolder = useDeleteFolder();
+
+  // Inline folder creation form
+  const folderForm = useForm<FolderFormData>({
+    resolver: zodResolver(folderFormSchema),
+    defaultValues: {
+      name: "",
+    },
+  });
 
   useEffect(() => {
     if (mode === "edit" && project) {
@@ -66,6 +100,52 @@ export function ProjectForm({
     onOpenChange(false);
   };
 
+  // Inline folder handlers
+  const handleAddFolder = () => {
+    setShowInlineFolderInput(true);
+  };
+
+  const handleInlineFolderSubmit = async (data: FolderFormData) => {
+    if (!project?.id) return;
+
+    try {
+      await createFolder.mutateAsync({
+        name: data.name,
+        projectId: project.id,
+      });
+      folderForm.reset();
+      setShowInlineFolderInput(false);
+      toast.success(`Folder "${data.name}" created successfully!`);
+    } catch (error) {
+      console.error("Failed to create folder:", error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to create folder. Please try again."
+      );
+    }
+  };
+
+  const handleEditFolder = (folder: Folder) => {
+    // TODO: Implement inline folder editing
+    toast.info("Inline folder editing will be implemented");
+  };
+
+  const handleDeleteFolder = async (folderId: string) => {
+    if (confirm("Are you sure you want to delete this folder?")) {
+      try {
+        await deleteFolder.mutateAsync({ id: folderId });
+      } catch (error) {
+        console.error("Failed to delete folder:", error);
+      }
+    }
+  };
+
+  const handleAddUser = (folderId: string) => {
+    // TODO: Implement add user functionality
+    toast.info("Add user functionality will be implemented later");
+  };
+
   if (!open) return null;
 
   const isFormValid = name.trim().length > 0;
@@ -80,7 +160,10 @@ export function ProjectForm({
           </h2>
 
           <div className="mb-4">
-            <Label htmlFor="project-name" className="block text-sm font-medium mb-2">
+            <Label
+              htmlFor="project-name"
+              className="block text-sm font-medium mb-2"
+            >
               Name
             </Label>
             <Input
@@ -93,6 +176,100 @@ export function ProjectForm({
               className="w-full"
             />
           </div>
+
+          {mode === "edit" && foldersLoading && (
+            <div className="mb-4">
+              <div className="text-sm text-muted-foreground p-2 bg-muted/50 rounded-md border">
+                Loading folders...
+              </div>
+            </div>
+          )}
+
+          {mode === "edit" && folders && folders.length > 0 && (
+            <div className="mb-4">
+              <Label className="block text-sm font-medium mb-2">
+                Project Folders ({folders.length})
+              </Label>
+              <div className="max-h-32 overflow-y-auto border rounded-md p-2 bg-muted/50 space-y-1">
+                {folders.map((folder) => (
+                  <FolderItem
+                    key={folder.id}
+                    folder={folder}
+                    onEdit={handleEditFolder}
+                    onDelete={handleDeleteFolder}
+                    onAddUser={handleAddUser}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {mode === "edit" &&
+            folders &&
+            folders.length === 0 &&
+            !foldersLoading && (
+              <div className="mb-4">
+                <div className="text-sm text-muted-foreground p-2 bg-muted/50 rounded-md border">
+                  No folders created yet. Use "Add Folder" to create your first
+                  folder.
+                </div>
+              </div>
+            )}
+
+          {mode === "edit" && (
+            <div className="mb-4">
+              {showInlineFolderInput ? (
+                <div className="space-y-2">
+                  <form
+                    onSubmit={folderForm.handleSubmit(handleInlineFolderSubmit)}
+                  >
+                    <Input
+                      placeholder="Enter folder name"
+                      disabled={createFolder.isPending}
+                      {...folderForm.register("name")}
+                      className="w-full"
+                    />
+                    {folderForm.formState.errors.name && (
+                      <p className="text-sm text-destructive">
+                        {folderForm.formState.errors.name.message}
+                      </p>
+                    )}
+                    <div className="flex gap-2 mt-2">
+                      <Button
+                        type="submit"
+                        size="sm"
+                        disabled={createFolder.isPending}
+                      >
+                        {createFolder.isPending ? "Creating..." : "Create"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setShowInlineFolderInput(false);
+                          folderForm.reset();
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleAddFolder}
+                  disabled={isLoading}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Folder
+                </Button>
+              )}
+            </div>
+          )}
 
           <div className="flex gap-2 justify-end">
             <Button
@@ -109,9 +286,12 @@ export function ProjectForm({
               className="min-w-[100px]"
             >
               {isLoading
-                ? (mode === "create" ? "Creating..." : "Updating...")
-                : (mode === "create" ? "Create Project" : "Update Project")
-              }
+                ? mode === "create"
+                  ? "Creating..."
+                  : "Updating..."
+                : mode === "create"
+                  ? "Create Project"
+                  : "Update Project"}
             </Button>
           </div>
         </form>

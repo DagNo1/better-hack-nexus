@@ -11,8 +11,7 @@ import {
   FileText,
   Folder,
   Trash2,
-  Users,
-  UserPlus,
+  UserPlus
 } from "lucide-react";
 
 interface ProjectFile {
@@ -41,7 +40,6 @@ interface ProjectCardProps {
   project: Project;
   onEdit?: (project: Project) => void;
   onDelete?: (projectId: string) => void;
-  onViewUsers?: (project: Project) => void;
   onManageUsers?: (project: Project) => void;
 }
 
@@ -49,7 +47,6 @@ export function ProjectCard({
   project,
   onEdit,
   onDelete,
-  onViewUsers,
   onManageUsers,
 }: ProjectCardProps) {
   const formatDate = (dateString: string) => {
@@ -59,7 +56,7 @@ export function ProjectCard({
     const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
 
     if (diffInDays === 0) {
-      return "Today";
+      return "Today";   
     } else if (diffInDays === 1) {
       return "Yesterday";
     } else if (diffInDays < 7) {
@@ -78,23 +75,11 @@ export function ProjectCard({
     (project.files?.length || 0) + (project.folders?.length || 0);
 
   return (
-    <Card className="group hover:shadow-lg transition-all duration-200 hover:scale-[1.02] cursor-pointer border border-border hover:border-primary/20 bg-card">
-      <CardHeader className="pb-3">
+    <Card className="group hover:shadow-lg transition-all duration-200 hover:scale-[1.02] cursor-pointer border border-border hover:border-primary/20 bg-background">
+      <CardHeader className="pb-0">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            <div className="flex flex-row items-center justify-between w-full mb-2 border-b p-2">
-              <Button
-                size="icon"
-                variant={"outline"}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onViewUsers?.(project);
-                }}
-                className="h-8 w-8 p-0 hover:bg-primary/10 hover:scale-110 transition-all"
-                title="View users"
-              >
-                <Users className="h-4 w-4" />
-              </Button>
+            <div className="flex flex-row items-center gap-2 justify-end w-full mb-2 border-b p-2">
               <Button
                 variant={"outline"}
                 size="icon"
@@ -156,7 +141,7 @@ export function ProjectCard({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="pt-0">
+      <CardContent className="pt-0  ">
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground/70">
             Created {formatDate(project.createdAt)}
