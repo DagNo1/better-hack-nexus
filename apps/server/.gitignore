@@ -4,6 +4,8 @@ dist/
 /out/
 
 # dev
+prisma/migrations/
+/prisma/migrations
 .yarn/
 !.yarn/patches
 !.yarn/plugins

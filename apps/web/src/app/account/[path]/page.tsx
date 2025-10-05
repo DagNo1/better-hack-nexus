@@ -1,3 +1,4 @@
+import BackButton from "@/components/buttons/back-button";
 import { AccountView } from "@daveyplate/better-auth-ui";
 import { accountViewPaths } from "@daveyplate/better-auth-ui/server";
 
@@ -13,9 +14,9 @@ export default async function AccountPage({
   params: Promise<{ path: string }>;
 }) {
   const { path } = await params;
-
   return (
     <main className="container p-4 md:p-6">
+      <BackButton />
       <AccountView path={path} />
     </main>
   );

@@ -5,7 +5,7 @@ import { cors } from "@elysiajs/cors";
 import { createContext } from "./lib/context";
 import { appRouter } from "./routers/index";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
-import { auth } from "./lib/auth";
+import { auth } from "./lib/auth/auth";
 
 const app = new Elysia({ adapter: node() })
   .use(

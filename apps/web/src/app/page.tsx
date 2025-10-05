@@ -1,16 +1,15 @@
 "use client";
+import { ProjectsList } from "@/layouts/home/projects-list";
 import { authClient } from "@/lib/auth-client";
-import { trpc } from "@/utils/trpc";
 import {
   RedirectToSignIn,
   SignedIn,
   SignedOut,
   UserButton,
 } from "@daveyplate/better-auth-ui";
-import { useRouter } from "next/navigation";
 
 export default function Home() {
-  const result = authClient.zanzibar.checkDetailed({
+  authClient.zanzibar.checkDetailed({
     action: "read",
     resourceType: "user",
     resourceId: "1",
@@ -18,19 +17,39 @@ export default function Home() {
       include_details: true,
     },
   });
-
-  const todo = trpc.todo.getAll.queryOptions();
   return (
-    <div className="flex flex-col items-center justify-center h-screen w-full">
-      <div className="flex justify-center my-8">
-        <RedirectToSignIn />
+    <div className="min-h-screen bg-transparent w-3xl relative">
+      {/* Header */}
+      <header className="border-b">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-4">
+            <SignedIn>
+              <UserButton className="bg-background text-white hover:bg-primary/10" />
+            </SignedIn>
+            <SignedOut>
+              <RedirectToSignIn />
+            </SignedOut>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="w-full mx-auto px-4 py-8">
         <SignedIn>
-          <UserButton />
+          <ProjectsList />
         </SignedIn>
         <SignedOut>
-          <RedirectToSignIn />
+          <div className="flex flex-col items-center justify-center h-96 text-center">
+            <h2 className="text-xl font-semibold mb-4">
+              Welcome to Better Hack Nexus
+            </h2>
+            <p className="text-muted-foreground mb-6">
+              Please sign in to view your projects
+            </p>
+            <RedirectToSignIn />
+          </div>
         </SignedOut>
-      </div>
+      </main>
     </div>
   );
 }
