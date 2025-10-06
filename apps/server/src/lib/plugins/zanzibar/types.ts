@@ -17,7 +17,7 @@ export interface ResourceRole {
   condition: RelationshipFunction;
 }
 
-// Simplified Resource Role for API responses (without condition function)
+// Simplified Resource Role for API responses
 export interface ResourceRoleResponse {
   name: string;
   actions: string[];

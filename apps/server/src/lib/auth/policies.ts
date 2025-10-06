@@ -72,4 +72,38 @@ export const policies: ResourcePolicies = {
       );
     },
   },
+  document: {
+    delete: async (userId: string, resourceId: string) => {
+      return await checkUserHasResourceRoleForAction(
+        "document",
+        "delete",
+        userId,
+        resourceId
+      );
+    },
+    read: async (userId: string, resourceId: string) => {
+      return await checkUserHasResourceRoleForAction(
+        "document",
+        "read",
+        userId,
+        resourceId
+      );
+    },
+    edit: async (userId: string, resourceId: string) => {
+      return await checkUserHasResourceRoleForAction(
+        "document",
+        "edit",
+        userId,
+        resourceId
+      );
+    },
+    share: async (userId: string, resourceId: string) => {
+      return await checkUserHasResourceRoleForAction(
+        "document",
+        "share",
+        userId,
+        resourceId
+      );
+    },
+  },
 };

@@ -16,7 +16,7 @@ model Project {
   ownerId   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
- 
+
   members ProjectMember[]
   folders Folder[]
 }
@@ -30,9 +30,10 @@ model Folder {
   parentId  String?  @map("parent_id")
 
   members   FolderMember[]
-  project   Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  parent    Folder?   @relation("FolderChildren", fields: [parentId], references: [id], onDelete: Cascade)
-  children  Folder[]  @relation("FolderChildren")
+  project   Project?       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent    Folder?        @relation("FolderChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Folder[]       @relation("FolderChildren")
+  documents Document[]
 
   @@map("folders")
 }
@@ -63,4 +64,17 @@ model FolderMember {
 
   @@unique([folderId, userId])
   @@map("folder_members")
+}
+
+model Document {
+  id        String   @id @default(cuid()) @map("_id")
+  name      String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  folderId  String
+
+  folder Folder @relation(fields: [folderId], references: [id], onDelete: Cascade)
+
+  @@map("documents")
 }
