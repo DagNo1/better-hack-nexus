@@ -225,6 +225,7 @@ export const folderRouter = router({
     .query(async ({ input }) => {
       const folder = await prisma.folder.findUnique({
         where: { id: input.folderId },
+        select: { projectId: true },
       });
       if (!folder) {
         throw new TRPCError({
@@ -240,12 +241,73 @@ export const folderRouter = router({
         },
       });
 
-      return members.map((m) => ({
-        id: m.user.id,
-        name: m.user.name,
-        email: m.user.email,
-        image: m.user.image,
-        role: m.role,
-      }));
+      // Build base list from folder members
+      const folderMembersByUserId = new Map(members.map((m) => [m.userId, m]));
+      const result: Array<{
+        id: string;
+        name: string | null;
+        email: string | null;
+        image: string | null;
+        role: string;
+      }> = [];
+
+      // Optionally fetch project members (with user details) and merge
+      let projectMembers: Array<{
+        userId: string;
+        role: string;
+        user: {
+          id: string;
+          name: string | null;
+          email: string | null;
+          image: string | null;
+        };
+      }> = [];
+      if (folder.projectId) {
+        projectMembers = await prisma.projectMember.findMany({
+          where: { projectId: folder.projectId },
+          select: {
+            userId: true,
+            role: true,
+            user: {
+              select: { id: true, name: true, email: true, image: true },
+            },
+          },
+        });
+      }
+
+      const projectRoleByUserId = projectMembers.reduce<Record<string, string>>(
+        (acc, pm) => {
+          acc[pm.userId] = pm.role;
+          return acc;
+        },
+        {}
+      );
+
+      // First: add all folder members (prefer folder role over any project role)
+      for (const m of members) {
+        const projectRole = projectRoleByUserId[m.userId] ?? null;
+        result.push({
+          id: m.user.id,
+          name: m.user.name,
+          email: m.user.email,
+          image: m.user.image,
+          role: m.role, // prefer folder role
+        });
+      }
+
+      // Second: add project-only members not present in folder members
+      for (const pm of projectMembers) {
+        if (!folderMembersByUserId.has(pm.userId)) {
+          result.push({
+            id: pm.user.id,
+            name: pm.user.name,
+            email: pm.user.email,
+            image: pm.user.image,
+            role: pm.role, // project-only member role
+          });
+        }
+      }
+
+      return result;
     }),
 });

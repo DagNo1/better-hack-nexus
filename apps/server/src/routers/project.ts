@@ -96,9 +96,40 @@ export const projectRouter = router({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
       try {
-        return await prisma.project.delete({
-          where: { id: input.id },
+        // Cleanup related records in a single transaction to satisfy FKs
+        const result = await prisma.$transaction(async (tx) => {
+          // Get all folder ids under this project
+          const folders = await tx.folder.findMany({
+            where: { projectId: input.id },
+            select: { id: true },
+          });
+          const folderIds = folders.map((f) => f.id);
+
+          if (folderIds.length > 0) {
+            // Remove folder memberships first
+            await tx.folderMember.deleteMany({
+              where: { folderId: { in: folderIds } },
+            });
+
+            // Optionally detach folder parent relations to avoid FK issues, then delete folders
+            await tx.folder.updateMany({
+              where: { id: { in: folderIds } },
+              data: { parentId: null },
+            });
+
+            await tx.folder.deleteMany({
+              where: { id: { in: folderIds } },
+            });
+          }
+
+          // Remove project memberships
+          await tx.projectMember.deleteMany({ where: { projectId: input.id } });
+
+          // Finally delete the project
+          return await tx.project.delete({ where: { id: input.id } });
         });
+
+        return result;
       } catch (error) {
         throw new TRPCError({
           code: "NOT_FOUND",

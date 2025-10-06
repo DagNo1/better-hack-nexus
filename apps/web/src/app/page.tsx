@@ -11,6 +11,7 @@ import {
   SignedOut,
   UserButton,
 } from "@daveyplate/better-auth-ui";
+import { Badge } from "@workspace/ui/components/badge";
 
 export default function Home() {
   authClient.zanzibar.matrix().then((resources) => {
@@ -24,6 +25,10 @@ export default function Home() {
           <div className="flex items-center gap-4">
             <SignedIn>
               <UserButton className="bg-background text-white hover:bg-primary/10" />
+              <h1 className="text-2xl font-bold">Better Hack Nexus</h1>
+              <p className="text-sm text-muted-foreground">
+                A Demo app for showing how the  Google Zanzibar ReBAC works
+              </p>
             </SignedIn>
             <SignedOut>
               <RedirectToSignIn />
@@ -35,10 +40,13 @@ export default function Home() {
       {/* Main Content */}
       <main className="w-full mx-auto px-4 py-8">
         <SignedIn>
-          <ProjectsList />
-          <ResourcesTableLayout />
-          <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="flex flex-col gap-4">
+            <ProjectsList />
+            <Badge className="text-2xl font-bold">Resources</Badge>
+            <ResourcesTableLayout />
+            <Badge className="text-2xl font-bold">Project Users</Badge>
             <ProjectUsersTable />
+            <Badge className="text-2xl font-bold">Folder Users</Badge>
             <FolderUsersTable />
           </div>
         </SignedIn>

@@ -3,9 +3,22 @@
 import { useEffect, useMemo, useState } from "react";
 import { useGetProjects } from "@/hooks/project";
 import { useGetFolderUsers, useGetFoldersByProject } from "@/hooks/folder";
-import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@workspace/ui/components/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/select";
 import { DataTable } from "@workspace/ui/components/data-table/data-table";
+import { Badge } from "@workspace/ui/components/badge";
 
 type Option = { id: string; name: string };
 
@@ -26,14 +39,16 @@ export function FolderUsersTable() {
     }
   }, [loadingProjects, projects, selectedProjectId]);
 
-  const { data: folders = [], isLoading: loadingFolders } = useGetFoldersByProject(
-    selectedProjectId || ""
-  );
+  const { data: folders = [], isLoading: loadingFolders } =
+    useGetFoldersByProject(selectedProjectId || "");
   const [selectedFolderId, setSelectedFolderId] = useState<string>("");
 
   useEffect(() => {
     if (!loadingFolders && folders.length > 0) {
-      if (!selectedFolderId || !folders.find((f: any) => f.id === selectedFolderId)) {
+      if (
+        !selectedFolderId ||
+        !folders.find((f: any) => f.id === selectedFolderId)
+      ) {
         setSelectedFolderId(folders[0].id);
       }
     } else if (!loadingFolders && folders.length === 0) {
@@ -58,7 +73,11 @@ export function FolderUsersTable() {
     () => [
       { header: "Name", accessorKey: "name" },
       { header: "Email", accessorKey: "email" },
-      { header: "Role", accessorKey: "role" },
+      {
+        header: "Role",
+        accessorKey: "role",
+        cell: ({ row }: any) => <Badge>{row.original.role}</Badge>,
+      },
     ],
     []
   );
@@ -73,10 +92,15 @@ export function FolderUsersTable() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between gap-4">
-          <CardTitle>Folder Members</CardTitle>
-          <div className="flex items-center gap-2">
-            <div className="w-56">
+        <div className="flex flex-col gap-3">
+          <div>
+            <CardTitle>Folder Members</CardTitle>
+            <CardDescription className="mt-1">
+              Filter by project and folder
+            </CardDescription>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="w-full sm:w-64">
               <Select
                 value={selectedProjectId}
                 onValueChange={(v) => {
@@ -84,8 +108,12 @@ export function FolderUsersTable() {
                   setSelectedFolderId("");
                 }}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder={loadingProjects ? "Loading projects..." : "Select project"} />
+                <SelectTrigger className="w-full">
+                  <SelectValue
+                    placeholder={
+                      loadingProjects ? "Loading projects..." : "Select project"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {projectOptions.map((opt) => (
@@ -96,22 +124,28 @@ export function FolderUsersTable() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="w-56">
+            <div className="w-full sm:w-64">
               <Select
                 value={selectedFolderId}
                 onValueChange={(v) => setSelectedFolderId(v)}
-                disabled={!selectedProjectId || loadingFolders || folderOptions.length === 0}
+                disabled={
+                  !selectedProjectId ||
+                  loadingFolders ||
+                  folderOptions.length === 0
+                }
               >
-                <SelectTrigger>
-                  <SelectValue placeholder={
-                    !selectedProjectId
-                      ? "Select project first"
-                      : loadingFolders
-                      ? "Loading folders..."
-                      : folderOptions.length === 0
-                      ? "No folders"
-                      : "Select folder"
-                  } />
+                <SelectTrigger className="w-full">
+                  <SelectValue
+                    placeholder={
+                      !selectedProjectId
+                        ? "Select project first"
+                        : loadingFolders
+                          ? "Loading folders..."
+                          : folderOptions.length === 0
+                            ? "No folders"
+                            : "Select folder"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {folderOptions.map((opt) => (
@@ -126,16 +160,16 @@ export function FolderUsersTable() {
         </div>
       </CardHeader>
       <CardContent>
-        <DataTable
-          columns={columns as any}
-          data={rows as any}
-          isLoading={loadingProjects || loadingFolders || loadingUsers}
-          enableRowSelection={false}
-          enableActions={false}
-        />
+        <div className="overflow-x-auto">
+          <DataTable
+            columns={columns as any}
+            data={rows as any}
+            isLoading={loadingProjects || loadingFolders || loadingUsers}
+            enableRowSelection={false}
+            enableActions={false}
+          />
+        </div>
       </CardContent>
     </Card>
   );
 }
-
-

@@ -2,9 +2,21 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useGetProjectUsers, useGetProjects } from "@/hooks/project";
-import { Card, CardContent, CardHeader, CardTitle } from "@workspace/ui/components/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@workspace/ui/components/select";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@workspace/ui/components/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@workspace/ui/components/select";
 import { DataTable } from "@workspace/ui/components/data-table/data-table";
+import { Badge } from "@workspace/ui/components/badge";
 
 type ProjectOption = { id: string; name: string };
 
@@ -38,7 +50,11 @@ export function ProjectUsersTable() {
     () => [
       { header: "Name", accessorKey: "name" },
       { header: "Email", accessorKey: "email" },
-      { header: "Role", accessorKey: "role" },
+      {
+        header: "Role",
+        accessorKey: "role",
+        cell: ({ row }: any) => <Badge>{row.original.role}</Badge>,
+      },
     ],
     []
   );
@@ -53,15 +69,19 @@ export function ProjectUsersTable() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-row items-center justify-between">
           <CardTitle>Project Members</CardTitle>
-          <div className="w-64">
+          <div className="w-64 ">
             <Select
               value={selectedProjectId}
               onValueChange={(v) => setSelectedProjectId(v)}
             >
               <SelectTrigger>
-                <SelectValue placeholder={loadingProjects ? "Loading projects..." : "Select project"} />
+                <SelectValue
+                  placeholder={
+                    loadingProjects ? "Loading projects..." : "Select project"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
                 {projectOptions.map((opt) => (
@@ -86,5 +106,3 @@ export function ProjectUsersTable() {
     </Card>
   );
 }
-
-
