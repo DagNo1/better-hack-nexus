@@ -1,33 +1,19 @@
 import { type BetterAuthPlugin } from "better-auth";
 import { createAuthEndpoint, sessionMiddleware } from "better-auth/api";
 import { initializePolicyEngine, policyEngineInstance } from "./policy-engine";
-import type { Resources } from "./types";
+import type { Policies } from "./types";
 import { z } from "zod/v3";
 
-export const ZanzibarPlugin = (resources: Resources) => {
+export const ZanzibarPlugin = (policies: Policies) => {
   const pluginId = "zanzibar-plugin";
 
   if (!policyEngineInstance) {
-    initializePolicyEngine(resources);
+    initializePolicyEngine(policies);
   }
 
   return {
     id: pluginId,
     endpoints: {
-      // Health check endpoint
-      ping: createAuthEndpoint(
-        "/zanzibar/ping",
-        { method: "GET" },
-        async (ctx) => {
-          return ctx.json({
-            status: "ok",
-            plugin: pluginId,
-            zanzibar_initialized: !!policyEngineInstance,
-          });
-        }
-      ),
-
-      // Authorization check endpoint
       check: createAuthEndpoint(
         "/zanzibar/check",
         {
@@ -58,63 +44,12 @@ export const ZanzibarPlugin = (resources: Resources) => {
               resourceType,
               resourceId
             );
-
-            return ctx.json({ allowed });
-          } catch (error) {
-            return ctx.json(
-              { error: "Internal server error" },
-              { status: 500 }
-            );
-          }
-        }
-      ),
-
-      // Detailed authorization check endpoint
-      checkDetailed: createAuthEndpoint(
-        "/zanzibar/check-detailed",
-        {
-          method: "POST",
-          use: [sessionMiddleware],
-          body: z.object({
-            action: z.string(),
-            resourceType: z.string(),
-            resourceId: z.string(),
-            options: z.object({
-              include_details: z.boolean().optional(),
-            }),
-          }),
-        },
-        async (ctx) => {
-          try {
-            const body = await ctx.body;
-            const { action, resourceType, resourceId, options = {} } = body;
-            const userId = ctx.context.session?.user.id;
-            if (!action || !resourceType || !resourceId) {
-              return ctx.json(
-                {
-                  error:
-                    "Missing required fields: action, resourceType, resourceId",
-                },
-                { status: 400 }
-              );
-            }
-
-            if (!policyEngineInstance) {
-              return ctx.json(
-                { error: "Zanzibar not initialized with policies" },
-                { status: 500 }
-              );
-            }
-
-            const result = await policyEngineInstance.checkDetailed(
-              userId,
-              action,
-              resourceType,
-              resourceId,
-              options
-            );
-
-            return ctx.json(result);
+            return ctx.json({
+              allowed,
+              message: allowed
+                ? `Action '${action}' allowed on ${resourceType}`
+                : `Action '${action}' denied on ${resourceType}`,
+            });
           } catch (error) {
             return ctx.json(
               { error: "Internal server error" },
@@ -128,11 +63,4 @@ export const ZanzibarPlugin = (resources: Resources) => {
 };
 
 export type { PolicyEngine } from "./policy-engine";
-export type {
-  AuthorizationResult,
-  PolicyFunction,
-  Resources,
-  UserRoleResponse,
-  UserResourceMatrix,
-  UserResourceMatrixEntry,
-} from "./types";
+export type { Policies as Resources } from "./types";

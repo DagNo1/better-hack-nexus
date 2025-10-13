@@ -8,4 +8,4 @@ export const ZanzibarClientPlugin = () => {
   } satisfies BetterAuthClientPlugin;
 };
 
-export type { AuthorizationResult, PolicyEvaluationOptions } from "./types";
+export {};

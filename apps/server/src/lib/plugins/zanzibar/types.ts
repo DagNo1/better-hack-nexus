@@ -1,88 +1,52 @@
-// Policy function signature - can be sync or async
-export type PolicyFunction = (
-  userId: string,
-  resourceId: string
-) => boolean | Promise<boolean>;
-
-// Relationship checking function signature
 export type RelationshipFunction = (
   userId: string,
   resourceId: string
 ) => Promise<boolean>;
 
-// Resource Role definition
 export interface ResourceRole {
   name: string;
-  actions: string[];
+  actions: readonly string[];
   condition: RelationshipFunction;
 }
 
-// Simplified Resource Role for API responses
-export interface ResourceRoleResponse {
-  name: string;
-  actions: string[];
-}
-
-// User role response for a specific resource
-export interface UserRoleResponse {
-  resourceType: string;
-  resourceId: string;
-  roles: ResourceRoleResponse[];
-}
-
-// User resource matrix entry
-export interface UserResourceMatrixEntry {
-  userId: string;
-  resourceType: string;
-  resourceId: string;
-  roles: ResourceRoleResponse[];
-}
-
-// Complete user-resource matrix
-export interface UserResourceMatrix {
-  users: string[];
-  resources: Array<{
-    resourceType: string;
-    resourceId: string;
-  }>;
-  matrix: UserResourceMatrixEntry[];
-}
-
-// Resource definition with actions and roles
 export interface ResourceDefinition {
-  actions: string[];
-  roles: ResourceRole[];
+  actions: readonly string[];
+  roles: readonly ResourceRole[];
 }
 
-// Resources configuration
-export interface Resources {
+export interface Policies {
   [resourceType: string]: ResourceDefinition;
 }
 
-// Action policies for a resource type
-export interface ActionPolicies {
-  [action: string]: PolicyFunction;
-}
+/*
+Generic builder to enforce compile-time consistency between
+resource types, actions, roles and role-conditions. 
+*/
 
-// Relationship policies for a resource type
-export interface RelationshipPolicies {
-  [relationship: string]: RelationshipFunction;
-}
+export type ResourcesShape = Record<string, readonly string[]>;
 
-// Resource policies
-export interface ResourcePolicies {
-  [resourceType: string]: ActionPolicies | RelationshipPolicies;
-}
+export type RolesShape<TResources extends ResourcesShape> = {
+  readonly [R in keyof TResources]?: ReadonlyArray<{
+    name: string;
+    actions: readonly string[];
+  }>;
+};
 
-// Authorization result
-export interface AuthorizationResult {
-  allowed: boolean;
-  reason?: string;
-  policy_function?: string;
-}
-
-// Policy evaluation options
-export interface PolicyEvaluationOptions {
-  include_details?: boolean;
-  debug?: boolean;
-}
+export type ConditionsShape<
+  TResources extends ResourcesShape,
+  TRoles extends RolesShape<TResources>,
+> = {
+  readonly [R in keyof TResources]?: Partial<
+    Record<
+      Extract<
+        TRoles[R] extends ReadonlyArray<infer RR>
+          ? RR extends { name: infer N }
+            ? N
+            : never
+          : never,
+        string
+      >,
+      RelationshipFunction
+    >
+  >;
+};

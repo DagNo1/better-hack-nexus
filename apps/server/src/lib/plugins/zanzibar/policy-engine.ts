@@ -1,322 +1,84 @@
-import type {
-  AuthorizationResult,
-  PolicyEvaluationOptions,
-  Resources,
-  ResourceRoleResponse,
-  UserRoleResponse,
-  UserResourceMatrix,
-  UserResourceMatrixEntry,
-} from "./types";
+import type { Policies } from "./types";
 
 // Global policy engine instance
 export let policyEngineInstance: PolicyEngine | null = null;
 
-export function initializePolicyEngine(resources: Resources): PolicyEngine {
-  policyEngineInstance = new PolicyEngine(resources);
+export function initializePolicyEngine(policies: Policies): PolicyEngine {
+  policyEngineInstance = new PolicyEngine(policies);
 
   return policyEngineInstance;
 }
 
 export class PolicyEngine {
-  private resources: Resources;
+  private policies: Policies;
 
-  constructor(resources: Resources) {
-    this.resources = resources;
+  constructor(policies: Policies) {
+    this.policies = policies;
   }
 
-  /**
-   * Check if user has a specific role on a resource
-   */
-  async checkUserHasResourceRole(
+  async checkRole(
     resourceType: string,
     roleName: string,
     userId: string,
     resourceId: string
-  ): Promise<boolean> {
-    const resource = this.resources[resourceType];
+  ): Promise<{ allowed: boolean; message: string }> {
+    const resource = this.policies[resourceType];
     if (!resource) {
-      return false;
+      return {
+        allowed: false,
+        message: `Unknown resource type '${resourceType}'`,
+      };
     }
-
-    // Find the specific role
     const role = resource.roles.find((r) => r.name === roleName);
     if (!role) {
-      return false;
+      return {
+        allowed: false,
+        message: `Unknown role '${roleName}' for resource '${resourceType}'`,
+      };
     }
-
-    // Check if user has this role
-    return await role.condition(userId, resourceId);
+    if (await role.condition(userId, resourceId)) {
+      return {
+        allowed: true,
+        message: `Role '${roleName}' allowed on ${resourceType}`,
+      };
+    }
+    return {
+      allowed: false,
+      message: `Role '${roleName}' denied on ${resourceType}`,
+    };
   }
 
-  /**
-   * Check if user has any role that allows the action
-   */
-  async checkUserHasResourceRoleForAction(
-    resourceType: string,
-    action: string,
-    userId: string,
-    resourceId: string
-  ): Promise<boolean> {
-    const resource = this.resources[resourceType];
-    if (!resource) {
-      return false;
-    }
-
-    // Find all roles that have this action in their permissions
-    const relevantRoles = resource.roles.filter((role) =>
-      role.actions.includes(action)
-    );
-
-    // Check if user satisfies ANY of the relevant roles
-    for (const role of relevantRoles) {
-      const hasRole = await role.condition(userId, resourceId);
-      if (hasRole) {
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  /**
-   * Check if a user can perform an action on a resource
-   * This is the main API method that matches your desired interface
-   */
   async check(
     userId: string,
     action: string,
     resourceType: string,
-    resourceId: string,
-    options: PolicyEvaluationOptions = {}
-  ): Promise<boolean> {
-    const result = await this.checkDetailed(
-      userId,
-      action,
-      resourceType,
-      resourceId,
-      options
-    );
-    return result.allowed;
-  }
-
-  /**
-   * Check with detailed result information
-   */
-  async checkDetailed(
-    userId: string,
-    action: string,
-    resourceType: string,
-    resourceId: string,
-    options: PolicyEvaluationOptions = {}
-  ): Promise<AuthorizationResult> {
-    try {
-      // Evaluate directly from resources by resolving roles that allow the action
-      const allowed = await this.checkUserHasResourceRoleForAction(
-        resourceType,
-        action,
-        userId,
-        resourceId
-      );
-
-      const result: AuthorizationResult = {
-        allowed,
-        reason: allowed
-          ? `Action '${action}' allowed on ${resourceType}`
-          : `Action '${action}' denied on ${resourceType}`,
-      };
-
-      if (options.include_details) {
-        result.policy_function = `${resourceType}.${action}`;
-      }
-
-      if (options.debug) {
-        console.log(`[Nexus] Evaluating ${resourceType}.${action}:`, {
-          userId,
-          resourceId,
-          result: allowed,
-        });
-      }
-
-      return result;
-    } catch (error) {
+    resourceId: string
+  ): Promise<{ allowed: boolean; message: string }> {
+    const resource = this.policies[resourceType];
+    if (!resource) {
       return {
         allowed: false,
-        reason: `Authorization error: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`,
+        message: `Unknown resource type '${resourceType}'`,
       };
     }
-  }
-
-  /**
-   * Get all resources with their actions and roles
-   */
-  getResources(): Resources {
-    return this.resources;
-  }
-
-  /**
-   * Get all actions for a specific resource type
-   */
-  getResourceActions(resourceType: string): string[] | null {
-    const resource = this.resources[resourceType];
-    if (!resource) {
-      return null;
+    if (!resource.actions.includes(action)) {
+      return {
+        allowed: false,
+        message: `Unknown action '${action}' for resource '${resourceType}'`,
+      };
     }
-    return resource.actions;
-  }
-
-  /**
-   * Get all roles for a specific resource type
-   */
-  getResourceRoles(resourceType: string): ResourceRoleResponse[] | null {
-    const resource = this.resources[resourceType];
-    if (!resource) {
-      return null;
-    }
-    return resource.roles.map((role) => ({
-      name: role.name,
-      actions: role.actions,
-      // Don't expose the condition function in the response
-    }));
-  }
-
-  /**
-   * Get actions for a specific role on a resource type
-   * Returns null if resource type not found, undefined if role not found
-   */
-  getRoleActions(
-    resourceType: string,
-    roleName: string
-  ): string[] | null | undefined {
-    const resource = this.resources[resourceType];
-    if (!resource) {
-      return null;
-    }
-
-    const role = resource.roles.find((r) => r.name === roleName);
-    if (!role) {
-      return undefined;
-    }
-
-    return role.actions;
-  }
-
-  /**
-   * Get all roles for a user on a specific resource
-   */
-  async getUserRoles(
-    userId: string,
-    resourceType: string,
-    resourceId: string
-  ): Promise<UserRoleResponse | null> {
-    const resource = this.resources[resourceType];
-    if (!resource) {
-      return null;
-    }
-
-    const userRoles: ResourceRoleResponse[] = [];
-
-    // Check each role to see if the user has it
     for (const role of resource.roles) {
-      const hasRole = await role.condition(userId, resourceId);
-      if (hasRole) {
-        userRoles.push({
-          name: role.name,
-          actions: role.actions,
-        });
+      if (!role.actions.includes(action)) continue;
+      if (await role.condition(userId, resourceId)) {
+        return {
+          allowed: true,
+          message: `Action '${action}' allowed on ${resourceType}`,
+        };
       }
     }
-
     return {
-      resourceType,
-      resourceId,
-      roles: userRoles,
+      allowed: false,
+      message: `Action '${action}' denied on ${resourceType}`,
     };
-  }
-
-  /**
-   * Get all roles for a user across all resource types
-   */
-  async getAllUserRoles(userId: string): Promise<UserRoleResponse[]> {
-    const allUserRoles: UserRoleResponse[] = [];
-
-    // For each resource type, we need to check against all possible resource IDs
-    // This is a simplified implementation - in practice, you might want to pass
-    // specific resource IDs or implement a different strategy
-    for (const [resourceType, resource] of Object.entries(this.resources)) {
-      // Note: This is a placeholder implementation
-      // In a real scenario, you'd need to know which resource IDs to check
-      // For now, we'll return an empty array for each resource type
-      // The client should call getUserRoles with specific resource IDs
-      allUserRoles.push({
-        resourceType,
-        resourceId: "*", // Placeholder - indicates all resources of this type
-        roles: [],
-      });
-    }
-
-    return allUserRoles;
-  }
-
-  /**
-   * Get user-resource matrix for all users and resources
-   * This method requires a list of users and resources to check
-   */
-  async getUserResourceMatrix(
-    userIds: string[],
-    resources: Array<{ resourceType: string; resourceId: string }>
-  ): Promise<UserResourceMatrix> {
-    const matrix: UserResourceMatrixEntry[] = [];
-
-    // Check each user against each resource
-    for (const userId of userIds) {
-      for (const resource of resources) {
-        const userRoles = await this.getUserRoles(
-          userId,
-          resource.resourceType,
-          resource.resourceId
-        );
-
-        if (userRoles) {
-          matrix.push({
-            userId,
-            resourceType: resource.resourceType,
-            resourceId: resource.resourceId,
-            roles: userRoles.roles,
-          });
-        }
-      }
-    }
-
-    return {
-      users: userIds,
-      resources,
-      matrix,
-    };
-  }
-
-  /**
-   * Get user-resource matrix for all users and all possible resources
-   * This is a more comprehensive version that checks against all resource types
-   * Note: This requires knowing all possible resource IDs for each type
-   */
-  async getAllUserResourceMatrix(
-    userIds: string[],
-    resourceIdsByType: Record<string, string[]>
-  ): Promise<UserResourceMatrix> {
-    const allResources: Array<{ resourceType: string; resourceId: string }> =
-      [];
-
-    // Build the complete list of resources to check
-    for (const [resourceType, resourceIds] of Object.entries(
-      resourceIdsByType
-    )) {
-      for (const resourceId of resourceIds) {
-        allResources.push({ resourceType, resourceId });
-      }
-    }
-
-    return this.getUserResourceMatrix(userIds, allResources);
   }
 }

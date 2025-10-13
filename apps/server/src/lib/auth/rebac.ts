@@ -6,7 +6,7 @@ const resources = {
   project: ["delete", "read", "edit", "share"],
   folder: ["delete", "read", "edit", "share"],
   file: ["delete", "read", "edit", "share"],
-};
+} as const;
 
 const ac = createAccessControl(resources);
 
@@ -165,4 +165,4 @@ const policies = acRoles.roleConditions({
   },
 } as const);
 
-export { policies };
+export default policies;
