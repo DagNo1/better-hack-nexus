@@ -63,4 +63,3 @@ export const ZanzibarPlugin = (policies: Policies) => {
 };
 
 export type { PolicyEngine } from "./policy-engine";
-export type { Policies as Resources } from "./types";
