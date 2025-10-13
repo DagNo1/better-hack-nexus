@@ -4,7 +4,7 @@ import { initializePolicyEngine, policyEngineInstance } from "./policy-engine";
 import type { Resources } from "./types";
 import { z } from "zod/v3";
 
-export const ZanzibarServerPlugin = (resources: Resources) => {
+export const ZanzibarPlugin = (resources: Resources) => {
   const pluginId = "zanzibar-plugin";
 
   if (!policyEngineInstance) {
@@ -115,77 +115,6 @@ export const ZanzibarServerPlugin = (resources: Resources) => {
             );
 
             return ctx.json(result);
-          } catch (error) {
-            return ctx.json(
-              { error: "Internal server error" },
-              { status: 500 }
-            );
-          }
-        }
-      ),
-
-      // Get all resources with their actions and roles
-      getResources: createAuthEndpoint(
-        "/zanzibar/resources",
-        {
-          method: "GET",
-          use: [sessionMiddleware],
-        },
-        async (ctx) => {
-          try {
-            if (!policyEngineInstance) {
-              return ctx.json(
-                { error: "Zanzibar not initialized with policies" },
-                { status: 500 }
-              );
-            }
-
-            const resources = policyEngineInstance.getResources();
-            return ctx.json({ resources });
-          } catch (error) {
-            return ctx.json(
-              { error: "Internal server error" },
-              { status: 500 }
-            );
-          }
-        }
-      ),
-
-      // Get all roles for a specific resource type
-      getResourceRoles: createAuthEndpoint(
-        "/zanzibar/resources/:resourceType/roles",
-        {
-          method: "GET",
-          use: [sessionMiddleware],
-        },
-        async (ctx) => {
-          try {
-            const resourceType = ctx.params?.resourceType;
-
-            if (!resourceType) {
-              return ctx.json(
-                { error: "Resource type is required" },
-                { status: 400 }
-              );
-            }
-
-            if (!policyEngineInstance) {
-              return ctx.json(
-                { error: "Zanzibar not initialized with policies" },
-                { status: 500 }
-              );
-            }
-
-            const roles = policyEngineInstance.getResourceRoles(resourceType);
-
-            if (!roles) {
-              return ctx.json(
-                { error: `Resource type '${resourceType}' not found` },
-                { status: 404 }
-              );
-            }
-
-            return ctx.json({ resourceType, roles });
           } catch (error) {
             return ctx.json(
               { error: "Internal server error" },

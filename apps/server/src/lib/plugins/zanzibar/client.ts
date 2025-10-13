@@ -1,12 +1,11 @@
 import type { BetterAuthClientPlugin } from "better-auth/client";
-import type { ZanzibarServerPlugin } from "./server";
+import type { ZanzibarPlugin } from "./server";
 
 export const ZanzibarClientPlugin = () => {
   return {
     id: "zanzibar-plugin",
-    $InferServerPlugin: {} as ReturnType<typeof ZanzibarServerPlugin>,
+    $InferServerPlugin: {} as ReturnType<typeof ZanzibarPlugin>,
   } satisfies BetterAuthClientPlugin;
 };
 
-// Export types for external use
 export type { AuthorizationResult, PolicyEvaluationOptions } from "./types";
