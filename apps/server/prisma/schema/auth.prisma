@@ -1,12 +1,12 @@
 model User {
-  id            String    @id @default(cuid()) @map("_id")
+  id            String          @id @default(cuid()) @map("_id")
   name          String
   email         String
   emailVerified Boolean
   image         String?
-  role          String   @default("user")
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  role          String          @default("user")
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
   sessions      Session[]
   accounts      Account[]
   projects      ProjectMember[]

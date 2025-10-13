@@ -8,7 +8,8 @@ export const ZanzibarPlugin = (policies: Policies) => {
   const pluginId = "zanzibar-plugin";
 
   if (!policyEngineInstance) {
-    initializePolicyEngine(policies);
+    const cachingEnabled = process.env.ZANZIBAR_CACHING_ENABLED !== "false";
+    initializePolicyEngine(policies, cachingEnabled);
   }
 
   return {
