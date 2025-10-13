@@ -1,18 +1,14 @@
 import { type BetterAuthPlugin } from "better-auth";
 import { createAuthEndpoint, sessionMiddleware } from "better-auth/api";
 import { initializePolicyEngine, policyEngineInstance } from "./policy-engine";
-import type { ResourcePolicies, Resources } from "./types";
+import type { Resources } from "./types";
 import { z } from "zod/v3";
-import prisma from "@/db";
 
-export const ZanzibarServerPlugin = (
-  policies: ResourcePolicies,
-  resources: Resources
-) => {
+export const ZanzibarServerPlugin = (resources: Resources) => {
   const pluginId = "zanzibar-plugin";
 
   if (!policyEngineInstance) {
-    initializePolicyEngine(policies, resources);
+    initializePolicyEngine(resources);
   }
 
   return {
@@ -198,91 +194,6 @@ export const ZanzibarServerPlugin = (
           }
         }
       ),
-
-      // Returns users with their roles for each resource id (auto-enumerates resources/users)
-      getUsersGroupedByResource: createAuthEndpoint(
-        "/zanzibar/matrix",
-        {
-          method: "GET",
-          use: [sessionMiddleware],
-        },
-        async (ctx) => {
-          try {
-            if (!policyEngineInstance) {
-              return ctx.json(
-                { error: "Zanzibar not initialized with policies" },
-                { status: 500 }
-              );
-            }
-
-            // Enumerate all users and resources
-            const [users, projects, folders] = await Promise.all([
-              prisma.user.findMany({ select: { id: true }, include:{} }),
-              prisma.project.findMany({ select: { id: true } }),
-              prisma.folder.findMany({ select: { id: true } }),
-            ]);
-
-            const grouped: Record<
-              string,
-              Array<{
-                resourceId: string;
-                users: Array<{ userId: string; roles: string[] }>;
-              }>
-            > = { project: [], folder: [] } as any;
-
-            // Projects
-            for (const p of projects) {
-              const row: {
-                resourceId: string;
-                users: Array<{ userId: string; roles: string[] }>;
-              } = {
-                resourceId: p.id,
-                users: [],
-              };
-              for (const u of users) {
-                const res = await policyEngineInstance.getUserRoles(
-                  u.id,
-                  "project",
-                  p.id
-                );
-                const roleNames = res?.roles.map((r) => r.name) ?? [];
-                if (roleNames.length > 0)
-                  row.users.push({ userId: u.id, roles: roleNames });
-              }
-              if (row.users.length > 0) grouped.project.push(row);
-            }
-
-            // Folders
-            for (const f of folders) {
-              const row: {
-                resourceId: string;
-                users: Array<{ userId: string; roles: string[] }>;
-              } = {
-                resourceId: f.id,
-                users: [],
-              };
-              for (const u of users) {
-                const res = await policyEngineInstance.getUserRoles(
-                  u.id,
-                  "folder",
-                  f.id
-                );
-                const roleNames = res?.roles.map((r) => r.name) ?? [];
-                if (roleNames.length > 0)
-                  row.users.push({ userId: u.id, roles: roleNames });
-              }
-              if (row.users.length > 0) grouped.folder.push(row);
-            }
-
-            return ctx.json(grouped);
-          } catch (error) {
-            return ctx.json(
-              { error: "Internal server error" },
-              { status: 500 }
-            );
-          }
-        }
-      ),
     },
   } satisfies BetterAuthPlugin;
 };
@@ -291,7 +202,6 @@ export type { PolicyEngine } from "./policy-engine";
 export type {
   AuthorizationResult,
   PolicyFunction,
-  ResourcePolicies,
   Resources,
   UserRoleResponse,
   UserResourceMatrix,

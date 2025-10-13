@@ -1,7 +1,6 @@
 import type {
   AuthorizationResult,
   PolicyEvaluationOptions,
-  ResourcePolicies,
   Resources,
   ResourceRoleResponse,
   UserRoleResponse,
@@ -12,21 +11,16 @@ import type {
 // Global policy engine instance
 export let policyEngineInstance: PolicyEngine | null = null;
 
-export function initializePolicyEngine(
-  policies: ResourcePolicies,
-  resources: Resources
-): PolicyEngine {
-  policyEngineInstance = new PolicyEngine(policies, resources);
+export function initializePolicyEngine(resources: Resources): PolicyEngine {
+  policyEngineInstance = new PolicyEngine(resources);
 
   return policyEngineInstance;
 }
 
 export class PolicyEngine {
-  private policies: ResourcePolicies = {};
   private resources: Resources;
 
-  constructor(policies: ResourcePolicies, resources: Resources) {
-    this.policies = policies;
+  constructor(resources: Resources) {
     this.resources = resources;
   }
 
@@ -116,26 +110,13 @@ export class PolicyEngine {
     options: PolicyEvaluationOptions = {}
   ): Promise<AuthorizationResult> {
     try {
-      // Get the policy function for this resource type and action
-
-      const resourcePolicies = this.policies[resourceType];
-      if (!resourcePolicies) {
-        return {
-          allowed: false,
-          reason: `Resource '${resourceType}' Not found'`,
-        };
-      }
-
-      const policyFunction = resourcePolicies[action] || null;
-
-      if (!policyFunction) {
-        return {
-          allowed: false,
-          reason: `No policy found for action '${action}' on resource type '${resourceType}'`,
-        };
-      }
-      // Evaluate the policy function with just userId and resourceId
-      const allowed = await policyFunction(userId, resourceId);
+      // Evaluate directly from resources by resolving roles that allow the action
+      const allowed = await this.checkUserHasResourceRoleForAction(
+        resourceType,
+        action,
+        userId,
+        resourceId
+      );
 
       const result: AuthorizationResult = {
         allowed,
