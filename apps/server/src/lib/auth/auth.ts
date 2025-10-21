@@ -1,7 +1,7 @@
 import prisma from "@/db";
 import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { ZanzibarPlugin } from "../plugins/zanzibar";
+import { ZanzibarPlugin } from "better-auth-zanzibar-plugin";
 import policies from "./rebac";
 
 export const auth = betterAuth<BetterAuthOptions>({

@@ -22,6 +22,7 @@
     "@trpc/tanstack-react-query": "^11.5.0",
     "@workspace/ui": "workspace:*",
     "better-auth": "^1.3.13",
+    "better-auth-zanzibar-plugin": "file:C:/Users/dagim/Projects/Personal/better-auth-zanzibar-plugin/better-auth-zanzibar-plugin-0.1.1.tgz",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.487.0",
