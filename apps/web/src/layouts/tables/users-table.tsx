@@ -1,35 +1,13 @@
 "use client";
 
-import { useCreateUser, useDeleteUser, useGetUsers } from "@/hooks/user";
-import { Button } from "@workspace/ui/components/button";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@workspace/ui/components/dropdown-menu";
-import { Skeleton } from "@workspace/ui/components/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@workspace/ui/components/table";
-import { Badge } from "@workspace/ui/components/badge";
-import { format } from "date-fns";
-import { MoreHorizontal, Plus, Trash } from "lucide-react";
-import { useState } from "react";
-import { toast } from "sonner";
 import { ConfirmationDialog } from "@/components/dialogs";
 import { UserFormDialog } from "@/components/dialogs/user-form-dialog";
+import { columns } from "@/components/table/columns/user-column";
+import { DataTable, type TableAction } from "@/components/table/data-table";
+import { useCreateUser, useDeleteUser, useGetUsers } from "@/hooks/user";
+import { Trash } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface User {
   id: string;
@@ -48,10 +26,6 @@ export function UsersTable() {
 
   const [showForm, setShowForm] = useState(false);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
-
-  const handleCreateUser = () => {
-    setShowForm(true);
-  };
 
   const handleDeleteUser = (user: User) => {
     setDeletingUser(user);
@@ -82,35 +56,33 @@ export function UsersTable() {
     }
   };
 
-  const isEmpty = !users || users.length === 0;
+  const actions: TableAction<User>[] = [
+    {
+      key: "delete",
+      label: "Delete",
+      icon: Trash,
+      variant: "destructive",
+      onClick: handleDeleteUser,
+    },
+  ];
 
   return (
-    <div className="space-y-6">
-      <UsersHeader onCreateUser={handleCreateUser} />
-
-      {isEmpty && !isLoading ? (
-        <EmptyUsersState />
-      ) : (
-        <div className="border rounded-lg">
-          <Table>
-            <UsersTableHeader />
-            <TableBody>
-              {isLoading ? (
-                <LoadingTableRows />
-              ) : (
-                (users || []).map((user) => (
-                  <UserRow
-                    key={user.id}
-                    user={user}
-                    onDelete={handleDeleteUser}
-                  />
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-
+    <DataTable
+      data={users}
+      isLoading={isLoading}
+      columns={columns}
+      actions={actions}
+      title="Users"
+      createButton={{
+        label: "New User",
+        onClick: () => setShowForm(true),
+      }}
+      emptyState={{
+        title: "No Users Yet",
+        description: "Get started by creating your first user",
+      }}
+      getRowKey={(user) => user.id}
+    >
       <UserFormDialog
         open={showForm}
         onOpenChange={setShowForm}
@@ -129,89 +101,6 @@ export function UsersTable() {
         variant="destructive"
         isLoading={deleteUser.isPending}
       />
-    </div>
-  );
-}
-
-function UsersHeader({ onCreateUser }: { onCreateUser: () => void }) {
-  return (
-    <div className="flex justify-between items-center">
-      <h2 className="text-2xl font-bold">Users</h2>
-      <Button onClick={onCreateUser}>
-        <Plus className="h-4 w-4 mr-2" />
-        New User
-      </Button>
-    </div>
-  );
-}
-
-function EmptyUsersState() {
-  return (
-    <Card className="w-full flex flex-col items-center justify-center p-12 text-center">
-      <CardHeader className="w-full">
-        <CardTitle>No Users Yet</CardTitle>
-        <CardDescription>
-          Get started by creating your first user
-        </CardDescription>
-      </CardHeader>
-    </Card>
-  );
-}
-
-function UsersTableHeader() {
-  return (
-    <TableHeader>
-      <TableRow>
-        <TableHead>Name</TableHead>
-        <TableHead>Email</TableHead>
-        <TableHead>Email Verified</TableHead>
-        <TableHead>Created</TableHead>
-      </TableRow>
-    </TableHeader>
-  );
-}
-
-function LoadingTableRows() {
-  return (
-    <>
-      {Array.from({ length: 6 }).map((_, index) => (
-        <TableRow key={index}>
-          <TableCell>
-            <Skeleton className="h-4 w-[200px]" />
-          </TableCell>
-          <TableCell>
-            <Skeleton className="h-4 w-[180px]" />
-          </TableCell>
-          <TableCell>
-            <Skeleton className="h-4 w-[80px]" />
-          </TableCell>
-          <TableCell>
-            <Skeleton className="h-4 w-[100px]" />
-          </TableCell>
-        </TableRow>
-      ))}
-    </>
-  );
-}
-
-interface UserRowProps {
-  user: User;
-  onDelete: (user: User) => void;
-}
-
-function UserRow({ user, onDelete }: UserRowProps) {
-  return (
-    <TableRow>
-      <TableCell className="font-medium">{user.name}</TableCell>
-      <TableCell>{user.email}</TableCell>
-      <TableCell>
-        {user.emailVerified ? (
-          <Badge variant="outline">Verified</Badge>
-        ) : (
-          <Badge variant="secondary">Not Verified</Badge>
-        )}
-      </TableCell>
-      <TableCell>{format(new Date(user.createdAt), "MM/dd/yyyy")}</TableCell>
-    </TableRow>
+    </DataTable>
   );
 }

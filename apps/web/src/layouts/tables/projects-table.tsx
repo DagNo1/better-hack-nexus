@@ -1,40 +1,16 @@
-"use client";
-
 import { ConfirmationDialog, ProjectFormDialog } from "@/components/dialogs";
+import { columns } from "@/components/table/columns/project-column";
+import { DataTable, type TableAction } from "@/components/table/data-table";
 import {
   useCreateProject,
   useDeleteProject,
   useGetProjects,
   useUpdateProject,
 } from "@/hooks/project";
-import { authClient } from "@/lib/auth-client";
 import type { Project, ProjectFormData } from "@/types/project";
-import { Button } from "@workspace/ui/components/button";
-import {
-  Card,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@workspace/ui/components/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@workspace/ui/components/dropdown-menu";
-import { Skeleton } from "@workspace/ui/components/skeleton";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@workspace/ui/components/table";
-import { format } from "date-fns";
-import { Edit, ExternalLink, MoreHorizontal, Plus, Trash } from "lucide-react";
+import { Edit, ExternalLink, Trash } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 export function ProjectsTable() {
@@ -61,11 +37,8 @@ export function ProjectsTable() {
     setShowForm(true);
   };
 
-  const handleDeleteProject = (projectId: string) => {
-    const project = projects?.find((p) => p.id === projectId);
-    if (project) {
-      setDeletingProject(project);
-    }
+  const handleDeleteProject = (project: Project) => {
+    setDeletingProject(project);
   };
 
   const handleConfirmDelete = async () => {
@@ -100,41 +73,65 @@ export function ProjectsTable() {
     }
   };
 
-  const handleViewProject = (projectId: string) => {
-    router.push(`/project/${projectId}`);
+  const handleViewProject = (project: Project) => {
+    router.push(`/project/${project.id}`);
   };
 
-  const isEmpty = !projects || projects.length === 0;
+  const actions: TableAction<Project>[] = [
+    {
+      key: "view",
+      label: "View Details",
+      icon: ExternalLink,
+      onClick: handleViewProject,
+      permission: {
+        resourceType: "project",
+        resourceId: (project) => project.id,
+        action: "manage",
+      },
+    },
+    {
+      key: "edit",
+      label: "Edit",
+      icon: Edit,
+      onClick: handleEditProject,
+      permission: {
+        resourceType: "project",
+        resourceId: (project) => project.id,
+        action: "edit",
+      },
+    },
+    {
+      key: "delete",
+      label: "Delete",
+      icon: Trash,
+      variant: "destructive",
+      onClick: handleDeleteProject,
+      permission: {
+        resourceType: "project",
+        resourceId: (project) => project.id,
+        action: "delete",
+      },
+    },
+  ];
 
   return (
-    <div className="space-y-6">
-      <ProjectsHeader onCreateProject={handleCreateProject} />
-
-      {isEmpty && !isLoading ? (
-        <EmptyProjectsState />
-      ) : (
-        <div className="border rounded-lg">
-          <Table>
-            <ProjectsTableHeader />
-            <TableBody>
-              {isLoading ? (
-                <LoadingTableRows />
-              ) : (
-                (projects || []).map((project) => (
-                  <ProjectRow
-                    key={project.id}
-                    project={project}
-                    onView={handleViewProject}
-                    onEdit={handleEditProject}
-                    onDelete={handleDeleteProject}
-                  />
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-
+    <DataTable
+      data={projects}
+      isLoading={isLoading}
+      columns={columns}
+      actions={actions}
+      title="Projects"
+      createButton={{
+        label: "New Project",
+        onClick: handleCreateProject,
+      }}
+      emptyState={{
+        title: "No Projects Yet",
+        description: "Get started by creating your first project",
+      }}
+      getRowKey={(project) => project.id}
+      onRowClick={handleViewProject}
+    >
       <ProjectFormDialog
         mode={formMode}
         project={editingProject}
@@ -155,190 +152,6 @@ export function ProjectsTable() {
         variant="destructive"
         isLoading={deleteProject.isPending}
       />
-    </div>
-  );
-}
-
-function ProjectsHeader({ onCreateProject }: { onCreateProject: () => void }) {
-  return (
-    <div className="flex justify-between items-center">
-      <h2 className="text-2xl font-bold">Projects</h2>
-      <Button onClick={onCreateProject}>
-        <Plus className="h-4 w-4 mr-2" />
-        New Project
-      </Button>
-    </div>
-  );
-}
-
-function EmptyProjectsState() {
-  return (
-    <Card className="w-full flex flex-col items-center justify-center p-12 text-center">
-      <CardHeader className="w-full">
-        <CardTitle>No Projects Yet</CardTitle>
-        <CardDescription>
-          Get started by creating your first project
-        </CardDescription>
-      </CardHeader>
-    </Card>
-  );
-}
-
-function ProjectsTableHeader() {
-  return (
-    <TableHeader>
-      <TableRow>
-        <TableHead className="w-[300px]">Name</TableHead>
-        <TableHead>Created</TableHead>
-        <TableHead>Updated</TableHead>
-        <TableHead className="w-[100px]">Folders</TableHead>
-        <TableHead className="w-[80px]">Actions</TableHead>
-      </TableRow>
-    </TableHeader>
-  );
-}
-
-function LoadingTableRows() {
-  return (
-    <>
-      {Array.from({ length: 6 }).map((_, index) => (
-        <TableRow key={index}>
-          <TableCell>
-            <Skeleton className="h-4 w-[200px]" />
-          </TableCell>
-          <TableCell>
-            <Skeleton className="h-4 w-[100px]" />
-          </TableCell>
-          <TableCell>
-            <Skeleton className="h-4 w-[100px]" />
-          </TableCell>
-          <TableCell>
-            <Skeleton className="h-4 w-[40px]" />
-          </TableCell>
-          <TableCell>
-            <Skeleton className="h-8 w-8" />
-          </TableCell>
-        </TableRow>
-      ))}
-    </>
-  );
-}
-
-interface ProjectRowProps {
-  project: Project;
-  onView: (id: string) => void;
-  onEdit: (project: Project) => void;
-  onDelete: (id: string) => void;
-}
-
-function ProjectRow({ project, onView, onEdit, onDelete }: ProjectRowProps) {
-  const [canEdit, setCanEdit] = useState(false);
-  const [canManage, setCanManage] = useState(false);
-  const [canDelete, setCanDelete] = useState(false);
-
-  useEffect(() => {
-    const checkPermissions = async () => {
-      const [managePermission, editPermission, deletePermission] =
-        await Promise.all([
-          authClient.zanzibar.check({
-            resourceType: "project",
-            resourceId: project.id,
-            action: "manage",
-          }),
-          authClient.zanzibar.check({
-            resourceType: "project",
-            resourceId: project.id,
-            action: "edit",
-          }),
-          authClient.zanzibar.check({
-            resourceType: "project",
-            resourceId: project.id,
-            action: "delete",
-          }),
-        ]);
-      setCanManage(
-        managePermission.data && "allowed" in managePermission.data
-          ? managePermission.data.allowed
-          : false
-      );
-      setCanEdit(
-        editPermission.data && "allowed" in editPermission.data
-          ? editPermission.data.allowed
-          : false
-      );
-      setCanDelete(
-        deletePermission.data && "allowed" in deletePermission.data
-          ? deletePermission.data.allowed
-          : false
-      );
-    };
-
-    checkPermissions();
-  }, [project.id]);
-
-  return (
-    <TableRow
-      className="cursor-pointer hover:bg-muted/50"
-      onClick={() => onView(project.id)}
-    >
-      <TableCell className="font-medium">{project.name}</TableCell>
-      <TableCell>{format(new Date(project.createdAt), "MM/dd/yyyy")}</TableCell>
-      <TableCell>{format(new Date(project.updatedAt), "MM/dd/yyyy")}</TableCell>
-      <TableCell>{project.folders?.length || 0}</TableCell>
-      <TableCell>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="h-8 w-8 p-0"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-
-          <DropdownMenuContent align="end">
-            {canManage && (
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onView(project.id);
-                }}
-              >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                View Details
-              </DropdownMenuItem>
-            )}
-            {canEdit && (
-              <DropdownMenuItem
-                className="cursor-pointer"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onEdit(project);
-                }}
-              >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </DropdownMenuItem>
-            )}
-            {canDelete && (
-              <DropdownMenuItem
-                className="cursor-pointer"
-                variant="destructive"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(project.id);
-                }}
-              >
-                <Trash className="h-4 w-4 mr-2" />
-                Delete
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </TableCell>
-    </TableRow>
+    </DataTable>
   );
 }
