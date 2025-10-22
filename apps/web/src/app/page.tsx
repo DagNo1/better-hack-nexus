@@ -1,6 +1,7 @@
 "use client";
 
 import { ProjectsTable } from "@/layouts/tables/projects-table";
+import { UsersTable } from "@/layouts/tables/users-table";
 import {
   RedirectToSignIn,
   SignedIn,
@@ -32,8 +33,9 @@ export default function Home() {
       {/* Main Content */}
       <main className="w-full mx-auto px-4 py-8">
         <SignedIn>
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-8">
             <ProjectsTable />
+            <UsersTable />
           </div>
         </SignedIn>
       </main>

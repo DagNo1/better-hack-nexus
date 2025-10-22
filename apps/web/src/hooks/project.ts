@@ -78,10 +78,6 @@ export const useAddUserToProject = () => {
       queryClient.invalidateQueries({
         queryKey: trpc.project.getAll.queryKey(),
       });
-      toast.success("User added to project successfully");
-    },
-    onError: (error: any) => {
-      toast.error(error.message || "Failed to add user to project");
     },
   });
 };

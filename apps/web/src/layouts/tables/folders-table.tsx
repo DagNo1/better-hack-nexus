@@ -165,7 +165,6 @@ function FoldersTableHeader() {
         <TableHead className="w-[300px]">Name</TableHead>
         <TableHead>Created</TableHead>
         <TableHead>Updated</TableHead>
-        <TableHead className="w-[100px]">Children</TableHead>
         <TableHead className="w-[80px]">Actions</TableHead>
       </TableRow>
     </TableHeader>
@@ -185,9 +184,6 @@ function LoadingTableRows() {
           </TableCell>
           <TableCell>
             <Skeleton className="h-4 w-[100px]" />
-          </TableCell>
-          <TableCell>
-            <Skeleton className="h-4 w-[40px]" />
           </TableCell>
           <TableCell>
             <Skeleton className="h-8 w-8" />
@@ -215,7 +211,6 @@ function FolderRow({ folder, onEdit, onDelete }: FolderRowProps) {
       </TableCell>
       <TableCell>{format(new Date(folder.createdAt), "MM/dd/yyyy")}</TableCell>
       <TableCell>{format(new Date(folder.updatedAt), "MM/dd/yyyy")}</TableCell>
-      <TableCell>{folder.children?.length || 0}</TableCell>
       <TableCell>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

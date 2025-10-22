@@ -18,13 +18,13 @@ const acRoles = ac.resourceRoles({
   ],
   folder: [
     { name: "owner", actions: ["delete", "read", "edit", "share"] },
+    { name: "editor", actions: ["read", "edit"] },
     { name: "viewer", actions: ["read"] },
-    { name: "sharer", actions: ["read", "share"] },
   ],
   file: [
     { name: "owner", actions: ["delete", "read", "edit", "share"] },
+    { name: "editor", actions: ["read", "edit"] },
     { name: "viewer", actions: ["read"] },
-    { name: "sharer", actions: ["read", "share"] },
   ],
 } as const);
 
@@ -98,23 +98,19 @@ const policies = acRoles.roleConditions({
 
       return false;
     },
-    sharer: async (userId: string, resourceId: string) => {
+    editor: async (userId: string, resourceId: string) => {
       const folder = await prisma.folder.findFirst({
         select: { projectId: true },
-        where: {
-          id: resourceId,
-        },
+        where: { id: resourceId },
       });
-
       if (folder?.projectId) {
         return await acRoles.checkRole(
           "project",
-          "owner",
+          "editor",
           userId,
           folder.projectId
         );
       }
-
       return false;
     },
   },
@@ -131,6 +127,21 @@ const policies = acRoles.roleConditions({
 
       return false;
     },
+    editor: async (userId: string, resourceId: string) => {
+      const doc = await (prisma as any).file.findFirst({
+        select: { folderId: true },
+        where: { id: resourceId },
+      });
+      if (doc?.folderId) {
+        return await acRoles.checkRole(
+          "folder",
+          "editor",
+          userId,
+          doc.folderId
+        );
+      }
+      return false;
+    },
     viewer: async (userId: string, resourceId: string) => {
       const doc = await (prisma as any).file.findFirst({
         select: { folderId: true },
@@ -144,20 +155,6 @@ const policies = acRoles.roleConditions({
           userId,
           doc.folderId
         );
-      }
-
-      return false;
-    },
-    sharer: async (userId: string, resourceId: string) => {
-      const doc = await (prisma as any).file.findFirst({
-        select: { folder: { select: { projectId: true } } },
-        where: { id: resourceId },
-      });
-
-      const projectId = doc?.folder?.projectId ?? null;
-
-      if (projectId) {
-        return await acRoles.checkRole("project", "owner", userId, projectId);
       }
 
       return false;

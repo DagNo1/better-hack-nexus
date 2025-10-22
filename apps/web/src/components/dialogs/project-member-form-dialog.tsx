@@ -44,7 +44,7 @@ export function ProjectMemberFormDialog({
   const { data: allUsers, isLoading: isLoadingUsers } = useGetUsers();
   const addUser = useAddUserToProject();
   const [selectedUserId, setSelectedUserId] = useState<string>("");
-  const [selectedRole, setSelectedRole] = useState<string>("member");
+  const [selectedRole, setSelectedRole] = useState<string>("editor");
 
   // Filter out users who are already members (only for add mode)
   const existingMemberIdsSet = new Set(existingMemberIds);
@@ -59,7 +59,7 @@ export function ProjectMemberFormDialog({
       setSelectedRole(member.role);
     } else if (mode === "add") {
       setSelectedUserId("");
-      setSelectedRole("member");
+      setSelectedRole("editor");
     }
   }, [mode, member, open]);
 
@@ -83,7 +83,7 @@ export function ProjectMemberFormDialog({
           : "Member role updated successfully!"
       );
       setSelectedUserId("");
-      setSelectedRole("member");
+      setSelectedRole("editor");
       onOpenChange(false);
     } catch (error: any) {
       console.error("Failed to save member:", error);
@@ -96,7 +96,7 @@ export function ProjectMemberFormDialog({
 
   const handleCancel = () => {
     setSelectedUserId("");
-    setSelectedRole("member");
+    setSelectedRole("editor");
     onOpenChange(false);
   };
 
@@ -168,8 +168,7 @@ export function ProjectMemberFormDialog({
                 <SelectValue placeholder="Select a role" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="member">Member</SelectItem>
+                <SelectItem value="editor">Editor</SelectItem>
                 <SelectItem value="viewer">Viewer</SelectItem>
               </SelectContent>
             </Select>
