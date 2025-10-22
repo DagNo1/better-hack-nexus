@@ -1,10 +1,11 @@
 "use client";
 
 import {
-  useAddUserToProject,
-  useGetProjectUsers,
-  useRemoveUserFromProject,
-} from "@/hooks/project";
+  ConfirmationDialog,
+  ProjectMemberFormDialog,
+} from "@/components/dialogs";
+import { useGetProjectUsers, useRemoveUserFromProject } from "@/hooks/project";
+import { authClient } from "@/lib/auth-client";
 import type { ProjectMember } from "@/types/project";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -28,13 +29,8 @@ import {
   TableHeader,
   TableRow,
 } from "@workspace/ui/components/table";
-import { format } from "date-fns";
 import { Edit, Mail, MoreHorizontal, Plus, Trash } from "lucide-react";
-import { useState } from "react";
-import {
-  ProjectMemberFormDialog,
-  ConfirmationDialog,
-} from "@/components/dialogs";
+import { useEffect, useState } from "react";
 
 interface ProjectMembersTableProps {
   projectId: string;
@@ -85,7 +81,7 @@ export function ProjectMembersTable({ projectId }: ProjectMembersTableProps) {
 
   return (
     <div className="space-y-6">
-      <MembersHeader onAddMember={handleAddMember} />
+      <MembersHeader projectId={projectId} onAddMember={handleAddMember} />
 
       {isEmpty && !isLoading ? (
         <EmptyMembersState />
@@ -101,6 +97,7 @@ export function ProjectMembersTable({ projectId }: ProjectMembersTableProps) {
                   <MemberRow
                     key={member.id}
                     member={member}
+                    projectId={projectId}
                     onEdit={handleEditMember}
                     onRemove={handleRemoveMember}
                   />
@@ -135,14 +132,41 @@ export function ProjectMembersTable({ projectId }: ProjectMembersTableProps) {
   );
 }
 
-function MembersHeader({ onAddMember }: { onAddMember: () => void }) {
+function MembersHeader({
+  projectId,
+  onAddMember,
+}: {
+  projectId: string;
+  onAddMember: () => void;
+}) {
+  const [canAddMember, setCanAddMember] = useState(false);
+
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const addMemberPermission = await authClient.zanzibar.check({
+        resourceType: "project",
+        resourceId: projectId,
+        action: "manage",
+      });
+      setCanAddMember(
+        addMemberPermission.data && "allowed" in addMemberPermission.data
+          ? addMemberPermission.data.allowed
+          : false
+      );
+    };
+
+    checkPermissions();
+  }, []);
+
   return (
     <div className="flex justify-between items-center">
       <h2 className="text-2xl font-bold">Project Members</h2>
-      <Button onClick={onAddMember}>
-        <Plus className="h-4 w-4 mr-2" />
-        Add Member
-      </Button>
+      {canAddMember && (
+        <Button onClick={onAddMember}>
+          <Plus className="h-4 w-4 mr-2" />
+          Add Member
+        </Button>
+      )}
     </div>
   );
 }
@@ -198,12 +222,33 @@ function LoadingTableRows() {
 
 interface MemberRowProps {
   member: ProjectMember;
+  projectId: string;
   onEdit: (member: ProjectMember) => void;
   onRemove: (user: ProjectMember) => void;
 }
 
-function MemberRow({ member, onEdit, onRemove }: MemberRowProps) {
+function MemberRow({ member, projectId, onEdit, onRemove }: MemberRowProps) {
+  const [canShare, setCanShare] = useState(false);
+
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const sharePermission = await authClient.zanzibar.check({
+        resourceType: "project",
+        resourceId: projectId,
+        action: "share",
+      });
+      setCanShare(
+        sharePermission.data && "allowed" in sharePermission.data
+          ? sharePermission.data.allowed
+          : false
+      );
+    };
+
+    checkPermissions();
+  }, [projectId]);
+
   const isOwner = member.role.toLowerCase() === "owner";
+  const showActions = !isOwner && canShare;
 
   return (
     <TableRow className="hover:bg-muted/50">
@@ -220,7 +265,7 @@ function MemberRow({ member, onEdit, onRemove }: MemberRowProps) {
         </span>
       </TableCell>
       <TableCell>
-        {!isOwner && (
+        {showActions && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-8 w-8 p-0">

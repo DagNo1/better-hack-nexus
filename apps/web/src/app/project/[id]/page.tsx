@@ -6,13 +6,14 @@ import { Skeleton } from "@workspace/ui/components/skeleton";
 import { Button } from "@workspace/ui/components/button";
 import { ArrowLeft, Edit, Trash } from "lucide-react";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ProjectFormDialog, ConfirmationDialog } from "@/components/dialogs";
 import { ProjectMembersTable } from "@/layouts/tables/project-members-table";
 import { FoldersTable } from "@/layouts/tables/folders-table";
 import type { ProjectFormData } from "@/types/project";
 import { useUpdateProject } from "@/hooks/project";
 import { toast } from "sonner";
+import { authClient } from "@/lib/auth-client";
 import {
   RedirectToSignIn,
   SignedIn,
@@ -133,16 +134,11 @@ export default function ProjectDetailPage() {
             </SignedOut>
           </div>
           <SignedIn>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handleEditProject}>
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-              <Button variant="destructive" onClick={handleDeleteProject}>
-                <Trash className="h-4 w-4 mr-2" />
-                Delete
-              </Button>
-            </div>
+            <ProjectActionButtons
+              projectId={projectId}
+              onEdit={handleEditProject}
+              onDelete={handleDeleteProject}
+            />
           </SignedIn>
         </div>
       </header>
@@ -179,6 +175,67 @@ export default function ProjectDetailPage() {
         variant="destructive"
         isLoading={deleteProject.isPending}
       />
+    </div>
+  );
+}
+
+interface ProjectActionButtonsProps {
+  projectId: string;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+function ProjectActionButtons({
+  projectId,
+  onEdit,
+  onDelete,
+}: ProjectActionButtonsProps) {
+  const [canManage, setCanManage] = useState(false);
+  const [canDelete, setCanDelete] = useState(false);
+
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const [managePermission, deletePermission] = await Promise.all([
+        authClient.zanzibar.check({
+          resourceType: "project",
+          resourceId: projectId,
+          action: "manage",
+        }),
+        authClient.zanzibar.check({
+          resourceType: "project",
+          resourceId: projectId,
+          action: "delete",
+        }),
+      ]);
+      setCanManage(
+        managePermission.data && "allowed" in managePermission.data
+          ? managePermission.data.allowed
+          : false
+      );
+      setCanDelete(
+        deletePermission.data && "allowed" in deletePermission.data
+          ? deletePermission.data.allowed
+          : false
+      );
+    };
+
+    checkPermissions();
+  }, [projectId]);
+
+  return (
+    <div className="flex gap-2">
+      {canManage && (
+        <Button variant="outline" onClick={onEdit}>
+          <Edit className="h-4 w-4 mr-2" />
+          Edit
+        </Button>
+      )}
+      {canDelete && (
+        <Button variant="destructive" onClick={onDelete}>
+          <Trash className="h-4 w-4 mr-2" />
+          Delete
+        </Button>
+      )}
     </div>
   );
 }

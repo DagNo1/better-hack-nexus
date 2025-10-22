@@ -1,10 +1,8 @@
 "use client";
 
-import {
-  useCreateFolder,
-  useGetFoldersByProject,
-  useUpdateFolder,
-} from "@/hooks/folder";
+import { ConfirmationDialog, FolderFormDialog } from "@/components/dialogs";
+import { useDeleteFolder, useGetFoldersByProject } from "@/hooks/folder";
+import { authClient } from "@/lib/auth-client";
 import type { Folder } from "@/types/project";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -31,14 +29,12 @@ import {
 import { format } from "date-fns";
 import {
   Edit,
+  Folder as FolderIcon,
   MoreHorizontal,
   Plus,
   Trash,
-  Folder as FolderIcon,
 } from "lucide-react";
-import { useState } from "react";
-import { ConfirmationDialog, FolderFormDialog } from "@/components/dialogs";
-import { useDeleteFolder } from "@/hooks/folder";
+import { useState, useEffect } from "react";
 
 interface FoldersTableProps {
   projectId: string;
@@ -201,6 +197,38 @@ interface FolderRowProps {
 }
 
 function FolderRow({ folder, onEdit, onDelete }: FolderRowProps) {
+  const [canEdit, setCanEdit] = useState(false);
+  const [canDelete, setCanDelete] = useState(false);
+
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const [editPermission, deletePermission] = await Promise.all([
+        authClient.zanzibar.check({
+          resourceType: "folder",
+          resourceId: folder.id,
+          action: "edit",
+        }),
+        authClient.zanzibar.check({
+          resourceType: "folder",
+          resourceId: folder.id,
+          action: "delete",
+        }),
+      ]);
+      setCanEdit(
+        editPermission.data && "allowed" in editPermission.data
+          ? editPermission.data.allowed
+          : false
+      );
+      setCanDelete(
+        deletePermission.data && "allowed" in deletePermission.data
+          ? deletePermission.data.allowed
+          : false
+      );
+    };
+
+    checkPermissions();
+  }, [folder.id]);
+
   return (
     <TableRow className="hover:bg-muted/50">
       <TableCell className="font-medium">
@@ -220,21 +248,25 @@ function FolderRow({ folder, onEdit, onDelete }: FolderRowProps) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              className="cursor-pointer"
-              onClick={() => onEdit(folder)}
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="cursor-pointer"
-              variant="destructive"
-              onClick={() => onDelete(folder)}
-            >
-              <Trash className="h-4 w-4 mr-2" />
-              Delete
-            </DropdownMenuItem>
+            {canEdit && (
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={() => onEdit(folder)}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </DropdownMenuItem>
+            )}
+            {canDelete && (
+              <DropdownMenuItem
+                className="cursor-pointer"
+                variant="destructive"
+                onClick={() => onDelete(folder)}
+              >
+                <Trash className="h-4 w-4 mr-2" />
+                Delete
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>

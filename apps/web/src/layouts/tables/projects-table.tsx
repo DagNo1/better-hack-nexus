@@ -1,10 +1,13 @@
 "use client";
 
+import { ConfirmationDialog, ProjectFormDialog } from "@/components/dialogs";
 import {
   useCreateProject,
+  useDeleteProject,
   useGetProjects,
   useUpdateProject,
 } from "@/hooks/project";
+import { authClient } from "@/lib/auth-client";
 import type { Project, ProjectFormData } from "@/types/project";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -31,10 +34,8 @@ import {
 import { format } from "date-fns";
 import { Edit, ExternalLink, MoreHorizontal, Plus, Trash } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { ConfirmationDialog, ProjectFormDialog } from "@/components/dialogs";
-import { useDeleteProject } from "@/hooks/project";
 
 export function ProjectsTable() {
   const { data: projects, isLoading } = useGetProjects();
@@ -231,6 +232,50 @@ interface ProjectRowProps {
 }
 
 function ProjectRow({ project, onView, onEdit, onDelete }: ProjectRowProps) {
+  const [canEdit, setCanEdit] = useState(false);
+  const [canManage, setCanManage] = useState(false);
+  const [canDelete, setCanDelete] = useState(false);
+
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const [managePermission, editPermission, deletePermission] =
+        await Promise.all([
+          authClient.zanzibar.check({
+            resourceType: "project",
+            resourceId: project.id,
+            action: "manage",
+          }),
+          authClient.zanzibar.check({
+            resourceType: "project",
+            resourceId: project.id,
+            action: "edit",
+          }),
+          authClient.zanzibar.check({
+            resourceType: "project",
+            resourceId: project.id,
+            action: "delete",
+          }),
+        ]);
+      setCanManage(
+        managePermission.data && "allowed" in managePermission.data
+          ? managePermission.data.allowed
+          : false
+      );
+      setCanEdit(
+        editPermission.data && "allowed" in editPermission.data
+          ? editPermission.data.allowed
+          : false
+      );
+      setCanDelete(
+        deletePermission.data && "allowed" in deletePermission.data
+          ? deletePermission.data.allowed
+          : false
+      );
+    };
+
+    checkPermissions();
+  }, [project.id]);
+
   return (
     <TableRow
       className="cursor-pointer hover:bg-muted/50"
@@ -252,38 +297,45 @@ function ProjectRow({ project, onView, onEdit, onDelete }: ProjectRowProps) {
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
+
           <DropdownMenuContent align="end">
-            <DropdownMenuItem
-              className="cursor-pointer"
-              onClick={(e) => {
-                e.stopPropagation();
-                onView(project.id);
-              }}
-            >
-              <ExternalLink className="h-4 w-4 mr-2" />
-              View Details
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="cursor-pointer"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(project);
-              }}
-            >
-              <Edit className="h-4 w-4 mr-2" />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="cursor-pointer"
-              variant="destructive"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(project.id);
-              }}
-            >
-              <Trash className="h-4 w-4 mr-2" />
-              Delete
-            </DropdownMenuItem>
+            {canManage && (
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onView(project.id);
+                }}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                View Details
+              </DropdownMenuItem>
+            )}
+            {canEdit && (
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(project);
+                }}
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </DropdownMenuItem>
+            )}
+            {canDelete && (
+              <DropdownMenuItem
+                className="cursor-pointer"
+                variant="destructive"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(project.id);
+                }}
+              >
+                <Trash className="h-4 w-4 mr-2" />
+                Delete
+              </DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </TableCell>

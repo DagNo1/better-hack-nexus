@@ -3,7 +3,7 @@ import prisma from "@/db";
 import { createAccessControl } from "better-auth-zanzibar-plugin";
 
 const resources = {
-  project: ["delete", "read", "edit", "share"],
+  project: ["delete", "read", "edit", "share", "manage"],
   folder: ["delete", "read", "edit", "share"],
   file: ["delete", "read", "edit", "share"],
 } as const;
@@ -12,7 +12,7 @@ const ac = createAccessControl(resources);
 
 const acRoles = ac.resourceRoles({
   project: [
-    { name: "owner", actions: ["delete", "read", "edit", "share"] },
+    { name: "owner", actions: ["delete", "read", "edit", "share", "manage"] },
     { name: "editor", actions: ["read", "edit"] },
     { name: "viewer", actions: ["read"] },
   ],
