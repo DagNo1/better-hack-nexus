@@ -13,6 +13,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset --force --schema ./prisma/schema",
+    "db:seed": "tsx src/scripts/seed.ts",
     "db:start-clean": "bun run src/scripts/start-clean.ts",
     "auth:generate": "pnpx @better-auth/cli@latest generate --config src/lib/auth/auth.ts --output prisma/schema/auth.prisma"
   },
