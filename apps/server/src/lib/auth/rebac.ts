@@ -3,16 +3,20 @@ import prisma from "@/db";
 import { createAccessControl } from "better-auth-zanzibar-plugin";
 
 const resources = {
-  project: ["delete", "read", "edit", "share", "manage"],
+  project: ["delete", "read", "edit", "share", "manage-members"],
   folder: ["delete", "read", "edit", "share"],
   file: ["delete", "read", "edit", "share"],
+  user: ["create", "delete", "read"],
 } as const;
 
 const ac = createAccessControl(resources);
 
 const acRoles = ac.resourceRoles({
   project: [
-    { name: "owner", actions: ["delete", "read", "edit", "share", "manage"] },
+    {
+      name: "owner",
+      actions: ["delete", "read", "edit", "share", "manage-members"],
+    },
     { name: "editor", actions: ["read", "edit"] },
     { name: "viewer", actions: ["read"] },
   ],
@@ -25,6 +29,10 @@ const acRoles = ac.resourceRoles({
     { name: "owner", actions: ["delete", "read", "edit", "share"] },
     { name: "editor", actions: ["read", "edit"] },
     { name: "viewer", actions: ["read"] },
+  ],
+  user: [
+    { name: "admin", actions: ["create", "delete", "read"] },
+    { name: "self", actions: ["read"] },
   ],
 } as const);
 
@@ -46,6 +54,7 @@ const policies = acRoles.roleConditions({
           members: {
             some: {
               userId: userId,
+              role: "editor",
             },
           },
         },
@@ -54,7 +63,15 @@ const policies = acRoles.roleConditions({
     },
     viewer: async (userId: string, resourceId: string) => {
       const project = await prisma.project.findFirst({
-        where: { id: resourceId, ownerId: userId },
+        where: {
+          id: resourceId,
+          members: {
+            some: {
+              userId: userId,
+              role: "viewer",
+            },
+          },
+        },
       });
       return !!project;
     },
@@ -148,6 +165,20 @@ const policies = acRoles.roleConditions({
       }
 
       return false;
+    },
+  },
+  user: {
+    admin: async (userId: string, resourceId: string) => {
+      const user = await prisma.user.findFirst({
+        where: { id: userId, role: "admin" },
+      });
+      return !!user;
+    },
+    self: async (userId: string, resourceId: string) => {
+      const user = await prisma.user.findFirst({
+        where: { id: userId },
+      });
+      return !!user;
     },
   },
 } as const);
