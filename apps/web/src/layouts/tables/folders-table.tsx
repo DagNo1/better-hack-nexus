@@ -50,16 +50,17 @@ export function FoldersTable({ projectId }: FoldersTableProps) {
       });
 
       // Single batch API call
-      const result = await authClient.zanzibar.hasNamedPermissions({ checks });
-
-      console.log("permissions", result);
-      if (
-        result.data &&
-        typeof result.data === "object" &&
-        !("error" in result.data)
-      ) {
-        setPermissions(result.data);
-      }
+      await authClient.zanzibar.hasPermissions(
+        { checks },
+        {
+          onSuccess: (data) => {
+            setPermissions(data.data ?? {});
+          },
+          onError: (error) => {
+            console.error("Failed to check permissions:", error);
+          },
+        }
+      );
     };
 
     checkAllPermissions();
@@ -91,11 +92,6 @@ export function FoldersTable({ projectId }: FoldersTableProps) {
       console.error("Failed to delete folder:", error);
     }
   };
-
-  console.log(
-    "permissions create-folder",
-    permissions["create-folder"]?.allowed
-  );
 
   return (
     <DataTable

@@ -3,7 +3,7 @@ import {
   ProjectMemberFormDialog,
 } from "@/components/dialogs";
 import { columns } from "@/components/table/columns/project-member-column";
-import { DataTable, type TableAction } from "@/components/table/data-table";
+import { DataTable } from "@/components/table/data-table";
 import { useGetProjectUsers, useRemoveUserFromProject } from "@/hooks/project";
 import { authClient } from "@/lib/auth-client";
 import type { ProjectMember } from "@/types/project";
@@ -37,17 +37,18 @@ export function ProjectMembersTable({ projectId }: ProjectMembersTableProps) {
         action: "share",
         resourceId: projectId,
       };
-
       // Single batch API call
-      const result = await authClient.zanzibar.hasNamedPermissions({ checks });
-
-      if (
-        result.data &&
-        typeof result.data === "object" &&
-        !("error" in result.data)
-      ) {
-        setPermissions(result.data);
-      }
+      await authClient.zanzibar.hasPermissions(
+        { checks },
+        {
+          onSuccess: (data) => {
+            setPermissions(data.data ?? {});
+          },
+          onError: (error) => {
+            console.error("Failed to check permissions:", error);
+          },
+        }
+      );
     };
 
     checkAllPermissions();
@@ -83,34 +84,32 @@ export function ProjectMembersTable({ projectId }: ProjectMembersTableProps) {
     }
   };
 
-  const actions: TableAction<ProjectMember>[] = [
-    {
-      key: "edit",
-      label: "Edit Role",
-      icon: Edit,
-      onClick: handleEditMember,
-      condition: (member) =>
-        member.role.toLowerCase() !== "owner" &&
-        (permissions["add-member"]?.allowed ?? false),
-    },
-    {
-      key: "remove",
-      label: "Remove from Project",
-      icon: Trash,
-      variant: "destructive",
-      onClick: handleRemoveMember,
-      condition: (member) =>
-        member.role.toLowerCase() !== "owner" &&
-        (permissions["add-member"]?.allowed ?? false),
-    },
-  ];
-
   return (
     <DataTable
       data={members}
       isLoading={isLoading}
       columns={columns}
-      actions={actions}
+      actions={[
+        {
+          key: "edit",
+          label: "Edit Role",
+          icon: Edit,
+          onClick: handleEditMember,
+          condition: (member) =>
+            member.role.toLowerCase() !== "owner" &&
+            (permissions["add-member"]?.allowed ?? false),
+        },
+        {
+          key: "remove",
+          label: "Remove from Project",
+          icon: Trash,
+          variant: "destructive",
+          onClick: handleRemoveMember,
+          condition: (member) =>
+            member.role.toLowerCase() !== "owner" &&
+            (permissions["add-member"]?.allowed ?? false),
+        },
+      ]}
       title="Project Members"
       createButton={{
         label: "Add Member",

@@ -17,7 +17,7 @@ export default function Home() {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
             <SignedIn>
-              <UserButton className="bg-background text-white hover:bg-primary/10" />
+              {/* <UserButton className="bg-background text-white hover:bg-primary/10" /> */}
               <h1 className="text-2xl font-bold">Better Hack Nexus</h1>
               <p className="text-sm text-muted-foreground">
                 A Demo app for showing how the Google Zanzibar ReBAC works

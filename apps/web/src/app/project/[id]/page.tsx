@@ -113,7 +113,7 @@ export default function ProjectDetailPage() {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-4">
             <SignedIn>
-              <UserButton className="bg-background text-white hover:bg-primary/10" />
+              {/* <UserButton className="bg-background text-white hover:bg-primary/10" /> */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -209,16 +209,19 @@ function ProjectActionButtons({
       };
 
       // Single batch API call
-      const result = await authClient.zanzibar.hasNamedPermissions({ checks });
-
-      if (
-        result.data &&
-        typeof result.data === "object" &&
-        !("error" in result.data)
-      ) {
-        setCanManage(result.data.manage?.allowed ?? false);
-        setCanDelete(result.data.delete?.allowed ?? false);
-      }
+      await authClient.zanzibar.hasPermissions(
+        { checks },
+        {
+          onSuccess: (data) => {
+            const permissions = data.data ?? {};
+            setCanManage(permissions.manage?.allowed ?? false);
+            setCanDelete(permissions.delete?.allowed ?? false);
+          },
+          onError: (error) => {
+            console.error("Failed to check permissions:", error);
+          },
+        }
+      );
     };
 
     checkPermissions();

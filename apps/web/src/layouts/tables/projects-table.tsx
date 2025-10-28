@@ -34,13 +34,6 @@ export function ProjectsTable() {
 
       const checks: Record<string, any> = {};
 
-      // Create permission
-      checks["create-project"] = {
-        resourceType: "project",
-        action: "create",
-        resourceId: "",
-      };
-
       // Per-project permissions
       projects.forEach((project) => {
         checks[`${project.id}-manage`] = {
@@ -61,15 +54,17 @@ export function ProjectsTable() {
       });
 
       // Single batch API call
-      const result = await authClient.zanzibar.hasNamedPermissions({ checks });
-
-      if (
-        result.data &&
-        typeof result.data === "object" &&
-        !("error" in result.data)
-      ) {
-        setPermissions(result.data);
-      }
+      await authClient.zanzibar.hasPermissions(
+        { checks },
+        {
+          onSuccess: (data) => {
+            setPermissions(data.data ?? {});
+          },
+          onError: (error) => {
+            console.error("Failed to check permissions:", error);
+          },
+        }
+      );
     };
 
     checkAllPermissions();
@@ -165,7 +160,7 @@ export function ProjectsTable() {
       createButton={{
         label: "New Project",
         onClick: handleCreateProject,
-        show: permissions["create-project"]?.allowed ?? false,
+        show: true,
       }}
       emptyState={{
         title: "No Projects Yet",

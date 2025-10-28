@@ -53,15 +53,17 @@ export function UsersTable() {
       });
 
       // Single batch API call
-      const result = await authClient.zanzibar.hasNamedPermissions({ checks });
-
-      if (
-        result.data &&
-        typeof result.data === "object" &&
-        !("error" in result.data)
-      ) {
-        setPermissions(result.data);
-      }
+      await authClient.zanzibar.hasPermissions(
+        { checks },
+        {
+          onSuccess: (data) => {
+            setPermissions(data.data ?? {});
+          },
+          onError: (error) => {
+            console.error("Failed to check permissions:", error);
+          },
+        }
+      );
     };
 
     checkAllPermissions();
