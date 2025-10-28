@@ -5,8 +5,9 @@ import { UserFormDialog } from "@/components/dialogs/user-form-dialog";
 import { columns } from "@/components/table/columns/user-column";
 import { DataTable, type TableAction } from "@/components/table/data-table";
 import { useCreateUser, useDeleteUser, useGetUsers } from "@/hooks/user";
+import { authClient } from "@/lib/auth-client";
 import { Trash } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface User {
@@ -26,6 +27,45 @@ export function UsersTable() {
 
   const [showForm, setShowForm] = useState(false);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [permissions, setPermissions] = useState<Record<string, any>>({});
+
+  // Batch check all permissions
+  useEffect(() => {
+    const checkAllPermissions = async () => {
+      if (!users || users.length === 0) return;
+
+      const checks: Record<string, any> = {};
+
+      // Create permission
+      checks["create-user"] = {
+        resourceType: "user",
+        action: "create",
+        resourceId: "",
+      };
+
+      // Per-user delete permissions
+      users.forEach((user) => {
+        checks[`${user.id}-delete`] = {
+          resourceType: "user",
+          resourceId: user.id,
+          action: "delete",
+        };
+      });
+
+      // Single batch API call
+      const result = await authClient.zanzibar.hasNamedPermissions({ checks });
+
+      if (
+        result.data &&
+        typeof result.data === "object" &&
+        !("error" in result.data)
+      ) {
+        setPermissions(result.data);
+      }
+    };
+
+    checkAllPermissions();
+  }, [users]);
 
   const handleDeleteUser = (user: User) => {
     setDeletingUser(user);
@@ -63,6 +103,7 @@ export function UsersTable() {
       icon: Trash,
       variant: "destructive",
       onClick: handleDeleteUser,
+      condition: (user) => permissions[`${user.id}-delete`]?.allowed ?? false,
     },
   ];
 
@@ -76,6 +117,7 @@ export function UsersTable() {
       createButton={{
         label: "New User",
         onClick: () => setShowForm(true),
+        show: permissions["create-user"]?.allowed ?? false,
       }}
       emptyState={{
         title: "No Users Yet",

@@ -1,6 +1,7 @@
 import type { User } from "@/types/project";
 import type { Column } from "../data-table";
-import { formatDate, renderBadge } from "../data-table";
+import { renderBadge } from "@/components/badges";
+import { format } from "date-fns";
 
 const columns: Column<Omit<User, "role">>[] = [
   {
@@ -29,7 +30,7 @@ const columns: Column<Omit<User, "role">>[] = [
     key: "createdAt",
     label: "Created",
     width: "w-[120px]",
-    render: (value) => formatDate(value),
+    render: (value) => format(value, "MM/dd/yyyy"),
   },
 ];
 

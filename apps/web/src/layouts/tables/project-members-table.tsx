@@ -5,9 +5,10 @@ import {
 import { columns } from "@/components/table/columns/project-member-column";
 import { DataTable, type TableAction } from "@/components/table/data-table";
 import { useGetProjectUsers, useRemoveUserFromProject } from "@/hooks/project";
+import { authClient } from "@/lib/auth-client";
 import type { ProjectMember } from "@/types/project";
 import { Edit, Trash } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 interface ProjectMembersTableProps {
   projectId: string;
@@ -23,6 +24,34 @@ export function ProjectMembersTable({ projectId }: ProjectMembersTableProps) {
     null
   );
   const [removingUser, setRemovingUser] = useState<ProjectMember | null>(null);
+  const [permissions, setPermissions] = useState<Record<string, any>>({});
+
+  // Batch check all permissions
+  useEffect(() => {
+    const checkAllPermissions = async () => {
+      const checks: Record<string, any> = {};
+
+      // Add/share permission
+      checks["add-member"] = {
+        resourceType: "project",
+        action: "share",
+        resourceId: projectId,
+      };
+
+      // Single batch API call
+      const result = await authClient.zanzibar.hasNamedPermissions({ checks });
+
+      if (
+        result.data &&
+        typeof result.data === "object" &&
+        !("error" in result.data)
+      ) {
+        setPermissions(result.data);
+      }
+    };
+
+    checkAllPermissions();
+  }, [projectId]);
 
   const handleAddMember = () => {
     setFormMode("add");
@@ -60,12 +89,9 @@ export function ProjectMembersTable({ projectId }: ProjectMembersTableProps) {
       label: "Edit Role",
       icon: Edit,
       onClick: handleEditMember,
-      condition: (member) => member.role.toLowerCase() !== "owner",
-      permission: {
-        resourceType: "project",
-        resourceId: projectId,
-        action: "share",
-      },
+      condition: (member) =>
+        member.role.toLowerCase() !== "owner" &&
+        (permissions["add-member"]?.allowed ?? false),
     },
     {
       key: "remove",
@@ -73,12 +99,9 @@ export function ProjectMembersTable({ projectId }: ProjectMembersTableProps) {
       icon: Trash,
       variant: "destructive",
       onClick: handleRemoveMember,
-      condition: (member) => member.role.toLowerCase() !== "owner",
-      permission: {
-        resourceType: "project",
-        resourceId: projectId,
-        action: "share",
-      },
+      condition: (member) =>
+        member.role.toLowerCase() !== "owner" &&
+        (permissions["add-member"]?.allowed ?? false),
     },
   ];
 
@@ -92,6 +115,7 @@ export function ProjectMembersTable({ projectId }: ProjectMembersTableProps) {
       createButton={{
         label: "Add Member",
         onClick: handleAddMember,
+        show: permissions["add-member"]?.allowed ?? false,
       }}
       emptyState={{
         title: "No Members Yet",

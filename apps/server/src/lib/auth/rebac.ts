@@ -69,7 +69,7 @@ const policies = acRoles.roleConditions({
       });
 
       if (folder?.projectId) {
-        return await acRoles.checkRole(
+        return await acRoles.hasRole(
           "project",
           "owner",
           userId,
@@ -88,7 +88,7 @@ const policies = acRoles.roleConditions({
       });
 
       if (folder?.projectId) {
-        return await acRoles.checkRole(
+        return await acRoles.hasRole(
           "project",
           "viewer",
           userId,
@@ -104,7 +104,7 @@ const policies = acRoles.roleConditions({
         where: { id: resourceId },
       });
       if (folder?.projectId) {
-        return await acRoles.checkRole(
+        return await acRoles.hasRole(
           "project",
           "editor",
           userId,
@@ -122,7 +122,7 @@ const policies = acRoles.roleConditions({
       });
 
       if (doc?.folderId) {
-        return await acRoles.checkRole("folder", "owner", userId, doc.folderId);
+        return await acRoles.hasRole("folder", "owner", userId, doc.folderId);
       }
 
       return false;
@@ -133,12 +133,7 @@ const policies = acRoles.roleConditions({
         where: { id: resourceId },
       });
       if (doc?.folderId) {
-        return await acRoles.checkRole(
-          "folder",
-          "editor",
-          userId,
-          doc.folderId
-        );
+        return await acRoles.hasRole("folder", "editor", userId, doc.folderId);
       }
       return false;
     },
@@ -149,12 +144,7 @@ const policies = acRoles.roleConditions({
       });
 
       if (doc?.folderId) {
-        return await acRoles.checkRole(
-          "folder",
-          "viewer",
-          userId,
-          doc.folderId
-        );
+        return await acRoles.hasRole("folder", "viewer", userId, doc.folderId);
       }
 
       return false;
@@ -163,4 +153,3 @@ const policies = acRoles.roleConditions({
 } as const);
 
 export default policies;
- 

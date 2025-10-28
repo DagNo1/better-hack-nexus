@@ -195,28 +195,30 @@ function ProjectActionButtons({
 
   useEffect(() => {
     const checkPermissions = async () => {
-      const [managePermission, deletePermission] = await Promise.all([
-        authClient.zanzibar.check({
+      const checks = {
+        manage: {
           resourceType: "project",
           resourceId: projectId,
           action: "manage",
-        }),
-        authClient.zanzibar.check({
+        },
+        delete: {
           resourceType: "project",
           resourceId: projectId,
           action: "delete",
-        }),
-      ]);
-      setCanManage(
-        managePermission.data && "allowed" in managePermission.data
-          ? managePermission.data.allowed
-          : false
-      );
-      setCanDelete(
-        deletePermission.data && "allowed" in deletePermission.data
-          ? deletePermission.data.allowed
-          : false
-      );
+        },
+      };
+
+      // Single batch API call
+      const result = await authClient.zanzibar.hasNamedPermissions({ checks });
+
+      if (
+        result.data &&
+        typeof result.data === "object" &&
+        !("error" in result.data)
+      ) {
+        setCanManage(result.data.manage?.allowed ?? false);
+        setCanDelete(result.data.delete?.allowed ?? false);
+      }
     };
 
     checkPermissions();

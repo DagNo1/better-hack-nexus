@@ -1,6 +1,5 @@
 "use client";
 
-import { authClient } from "@/lib/auth-client";
 import { Badge } from "@workspace/ui/components/badge";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -26,7 +25,7 @@ import {
 } from "@workspace/ui/components/table";
 import { format } from "date-fns";
 import { MoreHorizontal, Plus } from "lucide-react";
-import React, { useEffect, useState } from "react";
+import React from "react";
 
 // Types for the table configuration
 export interface Column<T = any> {
@@ -43,11 +42,6 @@ export interface TableAction<T = any> {
   icon?: React.ComponentType<{ className?: string }>;
   onClick: (item: T) => void;
   variant?: "default" | "destructive";
-  permission?: {
-    resourceType: string;
-    resourceId: string | ((item: T) => string);
-    action: string;
-  };
   condition?: (item: T) => boolean;
 }
 
@@ -65,11 +59,7 @@ export interface DataTableProps<T = any> {
   createButton?: {
     label: string;
     onClick: () => void;
-    permission?: {
-      resourceType: string;
-      resourceId?: string;
-      action: string;
-    };
+    show?: boolean;
   };
 
   // Empty State
@@ -102,37 +92,11 @@ export function DataTable<T extends Record<string, any>>({
   getRowKey,
   children,
 }: DataTableProps<T>) {
-  const [canCreate, setCanCreate] = useState(false);
-
-  useEffect(() => {
-    if (createButton?.permission) {
-      const checkCreatePermission = async () => {
-        const permission = await authClient.zanzibar.check({
-          resourceType: createButton.permission!.resourceType,
-          resourceId: createButton.permission!.resourceId || "",
-          action: createButton.permission!.action,
-        });
-        setCanCreate(
-          permission.data && "allowed" in permission.data
-            ? permission.data.allowed
-            : false
-        );
-      };
-      checkCreatePermission();
-    } else {
-      setCanCreate(true);
-    }
-  }, [createButton?.permission]);
-
   const isEmpty = !data || data.length === 0;
 
   return (
     <div className="space-y-6">
-      <TablePageHeader
-        title={title}
-        createButton={createButton}
-        canCreate={canCreate}
-      />
+      <TablePageHeader title={title} createButton={createButton} />
 
       {isEmpty && !isLoading ? (
         <EmptyState
@@ -175,16 +139,16 @@ export function DataTable<T extends Record<string, any>>({
 function TablePageHeader({
   title,
   createButton,
-  canCreate,
 }: {
   title: string;
   createButton?: DataTableProps["createButton"];
-  canCreate: boolean;
 }) {
+  const shouldShowButton = createButton?.show ?? true;
+
   return (
     <div className="flex justify-between items-center">
       <h2 className="text-2xl font-bold">{title}</h2>
-      {createButton && canCreate && (
+      {createButton && shouldShowButton && (
         <Button onClick={createButton.onClick}>
           <Plus className="h-4 w-4 mr-2" />
           {createButton.label}
@@ -267,7 +231,9 @@ export function LoadingRowsFlexible({
         <TableRow key={index}>
           {Array.from({ length: columnsCount }).map((_, cellIndex) => (
             <TableCell key={cellIndex}>
-              <Skeleton className={`h-4 ${skeletonWidths?.[cellIndex] || "w-full"}`} />
+              <Skeleton
+                className={`h-4 ${skeletonWidths?.[cellIndex] || "w-full"}`}
+              />
             </TableCell>
           ))}
         </TableRow>
@@ -289,49 +255,9 @@ function DataTableRow<T extends Record<string, any>>({
   actions,
   onRowClick,
 }: DataTableRowProps<T>) {
-  const [actionPermissions, setActionPermissions] = useState<
-    Record<string, boolean>
-  >({});
-
-  useEffect(() => {
-    const checkPermissions = async () => {
-      const permissionChecks = await Promise.all(
-        actions.map(async (action) => {
-          if (!action.permission) return { [action.key]: true };
-
-          const resourceId =
-            typeof action.permission.resourceId === "function"
-              ? action.permission.resourceId(item)
-              : action.permission.resourceId;
-
-          const permission = await authClient.zanzibar.check({
-            resourceType: action.permission!.resourceType,
-            resourceId: resourceId || "",
-            action: action.permission!.action,
-          });
-
-          return {
-            [action.key]:
-              permission.data && "allowed" in permission.data
-                ? permission.data.allowed
-                : false,
-          };
-        })
-      );
-
-      const permissions = permissionChecks.reduce(
-        (acc, curr) => ({ ...acc, ...curr }),
-        {}
-      );
-      setActionPermissions(permissions);
-    };
-
-    checkPermissions();
-  }, [actions, item]);
-
   const visibleActions = actions.filter((action) => {
     if (action.condition && !action.condition(item)) return false;
-    return actionPermissions[action.key] !== false;
+    return true;
   });
 
   return (
@@ -379,29 +305,5 @@ function DataTableRow<T extends Record<string, any>>({
         )}
       </TableCell>
     </TableRow>
-  );
-}
-
-// Helper function to format dates consistently
-export function formatDate(date: string | Date): string {
-  return format(new Date(date), "MM/dd/yyyy");
-}
-
-// Helper function to render badges
-export function renderBadge(
-  value: boolean | string,
-  { trueLabel = "Verified", falseLabel = "Not Verified", trueVariant = "outline", falseVariant = "secondary" } = {}
-): React.ReactNode {
-  const isTrue = Boolean(value);
-  const variant = isTrue ? trueVariant : falseVariant;
-
-  // Ensure variant is one of the valid Badge variants
-  const validVariants = ["default", "secondary", "destructive", "outline"];
-  const safeVariant = validVariants.includes(variant) ? variant as "default" | "secondary" | "destructive" | "outline" : "outline";
-
-  return (
-    <Badge variant={safeVariant}>
-      {isTrue ? trueLabel : falseLabel}
-    </Badge>
   );
 }

@@ -7,10 +7,11 @@ import {
   useGetProjects,
   useUpdateProject,
 } from "@/hooks/project";
+import { authClient } from "@/lib/auth-client";
 import type { Project, ProjectFormData } from "@/types/project";
 import { Edit, ExternalLink, Trash } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export function ProjectsTable() {
@@ -24,6 +25,55 @@ export function ProjectsTable() {
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [deletingProject, setDeletingProject] = useState<Project | null>(null);
+  const [permissions, setPermissions] = useState<Record<string, any>>({});
+
+  // Batch check all permissions
+  useEffect(() => {
+    const checkAllPermissions = async () => {
+      if (!projects || projects.length === 0) return;
+
+      const checks: Record<string, any> = {};
+
+      // Create permission
+      checks["create-project"] = {
+        resourceType: "project",
+        action: "create",
+        resourceId: "",
+      };
+
+      // Per-project permissions
+      projects.forEach((project) => {
+        checks[`${project.id}-manage`] = {
+          resourceType: "project",
+          resourceId: project.id,
+          action: "manage",
+        };
+        checks[`${project.id}-edit`] = {
+          resourceType: "project",
+          resourceId: project.id,
+          action: "edit",
+        };
+        checks[`${project.id}-delete`] = {
+          resourceType: "project",
+          resourceId: project.id,
+          action: "delete",
+        };
+      });
+
+      // Single batch API call
+      const result = await authClient.zanzibar.hasNamedPermissions({ checks });
+
+      if (
+        result.data &&
+        typeof result.data === "object" &&
+        !("error" in result.data)
+      ) {
+        setPermissions(result.data);
+      }
+    };
+
+    checkAllPermissions();
+  }, [projects]);
 
   const handleCreateProject = () => {
     setFormMode("create");
@@ -83,22 +133,16 @@ export function ProjectsTable() {
       label: "View Details",
       icon: ExternalLink,
       onClick: handleViewProject,
-      permission: {
-        resourceType: "project",
-        resourceId: (project) => project.id,
-        action: "manage",
-      },
+      condition: (project) =>
+        permissions[`${project.id}-manage`]?.allowed ?? false,
     },
     {
       key: "edit",
       label: "Edit",
       icon: Edit,
       onClick: handleEditProject,
-      permission: {
-        resourceType: "project",
-        resourceId: (project) => project.id,
-        action: "edit",
-      },
+      condition: (project) =>
+        permissions[`${project.id}-edit`]?.allowed ?? false,
     },
     {
       key: "delete",
@@ -106,11 +150,8 @@ export function ProjectsTable() {
       icon: Trash,
       variant: "destructive",
       onClick: handleDeleteProject,
-      permission: {
-        resourceType: "project",
-        resourceId: (project) => project.id,
-        action: "delete",
-      },
+      condition: (project) =>
+        permissions[`${project.id}-delete`]?.allowed ?? false,
     },
   ];
 
@@ -124,6 +165,7 @@ export function ProjectsTable() {
       createButton={{
         label: "New Project",
         onClick: handleCreateProject,
+        show: permissions["create-project"]?.allowed ?? false,
       }}
       emptyState={{
         title: "No Projects Yet",

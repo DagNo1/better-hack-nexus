@@ -1,7 +1,7 @@
 import type { Folder } from "@/types/project";
 import { FolderIcon } from "lucide-react";
 import type { Column } from "../data-table";
-import { formatDate } from "../data-table";
+import { format } from "date-fns";
 
 const columns: Column<Folder>[] = [
   {
@@ -19,13 +19,13 @@ const columns: Column<Folder>[] = [
     key: "createdAt",
     label: "Created",
     width: "w-[120px]",
-    render: (value) => formatDate(value),
+    render: (value) => format(value, "MM/dd/yyyy"),
   },
   {
     key: "updatedAt",
     label: "Updated",
     width: "w-[120px]",
-    render: (value) => formatDate(value),
+    render: (value) => format(value, "MM/dd/yyyy"),
   },
 ];
 
