@@ -3,7 +3,7 @@ import type { Column } from "../data-table";
 import { renderBadge } from "@/components/badges";
 import { format } from "date-fns";
 
-const columns: Column<Omit<User, "role">>[] = [
+const columns: Column<User>[] = [
   {
     key: "name",
     label: "Name",
@@ -13,6 +13,18 @@ const columns: Column<Omit<User, "role">>[] = [
     key: "email",
     label: "Email",
     width: "w-[250px]",
+  },
+  {
+    key: "role",
+    label: "Role",
+    width: "w-[120px]",
+    render: (value) =>
+      renderBadge(value === "admin", {
+        trueLabel: "Admin",
+        falseLabel: "User",
+        trueVariant: "default",
+        falseVariant: "secondary",
+      }),
   },
   {
     key: "emailVerified",

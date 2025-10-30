@@ -31,7 +31,7 @@ export function FoldersTable({ projectId }: FoldersTableProps) {
       // Create permission (based on project)
       checks["create-folder"] = {
         resourceType: "project",
-        action: "manage",
+        action: "edit",
         resourceId: projectId,
       };
 

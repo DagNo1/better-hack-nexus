@@ -36,10 +36,10 @@ export function ProjectsTable() {
 
       // Per-project permissions
       projects.forEach((project) => {
-        checks[`${project.id}-manage`] = {
+        checks[`${project.id}-read`] = {
           resourceType: "project",
           resourceId: project.id,
-          action: "manage",
+          action: "read",
         };
         checks[`${project.id}-edit`] = {
           resourceType: "project",
@@ -122,40 +122,38 @@ export function ProjectsTable() {
     router.push(`/project/${project.id}`);
   };
 
-  const actions: TableAction<Project>[] = [
-    {
-      key: "view",
-      label: "View Details",
-      icon: ExternalLink,
-      onClick: handleViewProject,
-      condition: (project) =>
-        permissions[`${project.id}-manage`]?.allowed ?? false,
-    },
-    {
-      key: "edit",
-      label: "Edit",
-      icon: Edit,
-      onClick: handleEditProject,
-      condition: (project) =>
-        permissions[`${project.id}-edit`]?.allowed ?? false,
-    },
-    {
-      key: "delete",
-      label: "Delete",
-      icon: Trash,
-      variant: "destructive",
-      onClick: handleDeleteProject,
-      condition: (project) =>
-        permissions[`${project.id}-delete`]?.allowed ?? false,
-    },
-  ];
-
   return (
     <DataTable
       data={projects}
       isLoading={isLoading}
       columns={columns}
-      actions={actions}
+      actions={[
+        {
+          key: "view",
+          label: "View Details",
+          icon: ExternalLink,
+          onClick: handleViewProject,
+          condition: (project) =>
+            permissions[`${project.id}-read`]?.allowed ?? false,
+        },
+        {
+          key: "edit",
+          label: "Edit",
+          icon: Edit,
+          onClick: handleEditProject,
+          condition: (project) =>
+            permissions[`${project.id}-edit`]?.allowed ?? false,
+        },
+        {
+          key: "delete",
+          label: "Delete",
+          icon: Trash,
+          variant: "destructive",
+          onClick: handleDeleteProject,
+          condition: (project) =>
+            permissions[`${project.id}-delete`]?.allowed ?? false,
+        },
+      ]}
       title="Projects"
       createButton={{
         label: "New Project",

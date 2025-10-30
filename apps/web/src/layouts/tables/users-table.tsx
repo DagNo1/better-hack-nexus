@@ -6,19 +6,10 @@ import { columns } from "@/components/table/columns/user-column";
 import { DataTable, type TableAction } from "@/components/table/data-table";
 import { useCreateUser, useDeleteUser, useGetUsers } from "@/hooks/user";
 import { authClient } from "@/lib/auth-client";
+import type { User } from "@/types/project";
 import { Trash } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  emailVerified: boolean;
-  image?: string | null;
-  createdAt: string | Date;
-  updatedAt: string | Date;
-}
 
 export function UsersTable() {
   const { data: users, isLoading } = useGetUsers();
@@ -105,7 +96,9 @@ export function UsersTable() {
       icon: Trash,
       variant: "destructive",
       onClick: handleDeleteUser,
-      condition: (user) => permissions[`${user.id}-delete`]?.allowed ?? false,
+      condition: (user) =>
+        (permissions[`${user.id}-delete`]?.allowed ?? false) &&
+        user.role !== "admin",
     },
   ];
 

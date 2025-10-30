@@ -31,10 +31,10 @@ export function ProjectMembersTable({ projectId }: ProjectMembersTableProps) {
     const checkAllPermissions = async () => {
       const checks: Record<string, any> = {};
 
-      // Add/share permission
-      checks["add-member"] = {
+      // Manage members permission
+      checks["manage-members"] = {
         resourceType: "project",
-        action: "share",
+        action: "manage-members",
         resourceId: projectId,
       };
       // Single batch API call
@@ -97,7 +97,7 @@ export function ProjectMembersTable({ projectId }: ProjectMembersTableProps) {
           onClick: handleEditMember,
           condition: (member) =>
             member.role.toLowerCase() !== "owner" &&
-            (permissions["add-member"]?.allowed ?? false),
+            (permissions["manage-members"]?.allowed ?? false),
         },
         {
           key: "remove",
@@ -107,14 +107,14 @@ export function ProjectMembersTable({ projectId }: ProjectMembersTableProps) {
           onClick: handleRemoveMember,
           condition: (member) =>
             member.role.toLowerCase() !== "owner" &&
-            (permissions["add-member"]?.allowed ?? false),
+            (permissions["manage-members"]?.allowed ?? false),
         },
       ]}
       title="Project Members"
       createButton={{
         label: "Add Member",
         onClick: handleAddMember,
-        show: permissions["add-member"]?.allowed ?? false,
+        show: permissions["manage-members"]?.allowed ?? false,
       }}
       emptyState={{
         title: "No Members Yet",

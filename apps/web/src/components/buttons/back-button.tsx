@@ -6,9 +6,8 @@ import { ArrowLeftIcon } from "lucide-react";
 const BackButton = () => {
   const { back } = useRouter();
   return (
-    <Button  onClick={back} className="mb-4">
+    <Button onClick={back} className="mb-4">
       <ArrowLeftIcon />
-      <span>Back to Previous</span>
     </Button>
   );
 };

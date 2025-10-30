@@ -12,6 +12,7 @@ export const userRouter = router({
         name: true,
         email: true,
         emailVerified: true,
+        role: true,
         image: true,
         createdAt: true,
         updatedAt: true,
