@@ -96,40 +96,9 @@ export const projectRouter = router({
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
       try {
-        // Cleanup related records in a single transaction to satisfy FKs
-        const result = await prisma.$transaction(async (tx) => {
-          // Get all folder ids under this project
-          const folders = await tx.folder.findMany({
-            where: { projectId: input.id },
-            select: { id: true },
-          });
-          const folderIds = folders.map((f) => f.id);
-
-          if (folderIds.length > 0) {
-            // Remove folder memberships first
-            await tx.folderMember.deleteMany({
-              where: { folderId: { in: folderIds } },
-            });
-
-            // Optionally detach folder parent relations to avoid FK issues, then delete folders
-            await tx.folder.updateMany({
-              where: { id: { in: folderIds } },
-              data: { parentId: null },
-            });
-
-            await tx.folder.deleteMany({
-              where: { id: { in: folderIds } },
-            });
-          }
-
-          // Remove project memberships
-          await tx.projectMember.deleteMany({ where: { projectId: input.id } });
-
-          // Finally delete the project
-          return await tx.project.delete({ where: { id: input.id } });
+        return await prisma.project.delete({
+          where: { id: input.id },
         });
-
-        return result;
       } catch (error) {
         throw new TRPCError({
           code: "NOT_FOUND",
@@ -138,83 +107,7 @@ export const projectRouter = router({
       }
     }),
 
-  getFolders: publicProcedure
-    .input(z.object({ projectId: z.string() }))
-    .query(async ({ input }) => {
-      return await prisma.folder.findMany({
-        where: { projectId: input.projectId },
-        include: {
-          children: {
-            include: {
-              children: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: "asc",
-        },
-      });
-    }),
-
-  createFolder: publicProcedure
-    .input(
-      z.object({
-        name: z.string().min(1),
-        projectId: z.string(),
-        parentId: z.string().optional(),
-      })
-    )
-    .mutation(async ({ input }) => {
-      return await prisma.folder.create({
-        data: {
-          name: input.name,
-          projectId: input.projectId,
-          parentId: input.parentId,
-        },
-      });
-    }),
-
-  updateFolder: publicProcedure
-    .input(
-      z.object({
-        id: z.string(),
-        name: z.string().min(1).optional(),
-        parentId: z.string().optional(),
-      })
-    )
-    .mutation(async ({ input }) => {
-      const { id, ...updateData } = input;
-
-      try {
-        return await prisma.folder.update({
-          where: { id },
-          data: updateData,
-        });
-      } catch (error) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Folder not found",
-        });
-      }
-    }),
-
-  deleteFolder: publicProcedure
-    .input(z.object({ id: z.string() }))
-    .mutation(async ({ input }) => {
-      try {
-        return await prisma.folder.delete({
-          where: { id: input.id },
-        });
-      } catch (error) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Folder not found",
-        });
-      }
-    }),
-
-  // User management endpoints for projects
-  addUser: publicProcedure
+  addMember: publicProcedure
     .input(
       z.object({
         projectId: z.string(),
@@ -269,12 +162,12 @@ export const projectRouter = router({
         if (error instanceof TRPCError) throw error;
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to add user to project",
+          message: "Failed to add member to project",
         });
       }
     }),
 
-  removeUser: publicProcedure
+  removeMember: publicProcedure
     .input(
       z.object({
         projectId: z.string(),
@@ -296,12 +189,12 @@ export const projectRouter = router({
       } catch (error) {
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to remove user from project",
+          message: "Failed to remove member from project",
         });
       }
     }),
 
-  getUsers: publicProcedure
+  getMembers: publicProcedure
     .input(z.object({ projectId: z.string() }))
     .query(async ({ input }) => {
       const project = await prisma.project.findUnique({

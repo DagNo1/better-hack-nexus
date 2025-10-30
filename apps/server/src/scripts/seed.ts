@@ -248,17 +248,17 @@ async function createFolder(
 
   console.log(`  ✓ Created folder: ${folder.name}`);
 
-  // Create documents in this folder
+  // Create files in this folder
   if (folderData.documents) {
     for (const docData of folderData.documents) {
-      const document = await prisma.document.create({
+      const file = await prisma.file.create({
         data: {
           name: docData.name,
           content: docData.content,
           folderId: folder.id,
         },
       });
-      console.log(`    ✓ Created document: ${document.name}`);
+      console.log(`    ✓ Created file: ${file.name}`);
     }
   }
 
@@ -344,8 +344,7 @@ async function main() {
     // Clear existing data (in reverse order of dependencies)
     if (forceReseed || existingUsers > 0 || existingProjects > 0) {
       logger.info("🧹 Cleaning up existing data...");
-      await prisma.document.deleteMany();
-      await prisma.folderMember.deleteMany();
+      await prisma.file.deleteMany();
       await prisma.folder.deleteMany();
       await prisma.projectMember.deleteMany();
       await prisma.project.deleteMany();

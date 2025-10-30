@@ -53,14 +53,6 @@ export interface ProjectMember {
   role: string;
 }
 
-export interface FolderMember {
-  id: string;
-  name: string | null;
-  email: string | null;
-  image: string | null;
-  role: string;
-}
-
 export interface CreateFolderInput {
   name: string;
   projectId?: string;

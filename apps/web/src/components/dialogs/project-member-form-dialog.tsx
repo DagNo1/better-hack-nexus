@@ -1,6 +1,6 @@
 "use client";
 
-import { useAddUserToProject } from "@/hooks/project";
+import { useAddMemberToProject } from "@/hooks/project";
 import { useGetUsers } from "@/hooks/user";
 import type { ProjectMember } from "@/types/project";
 import { Button } from "@workspace/ui/components/button";
@@ -42,7 +42,7 @@ export function ProjectMemberFormDialog({
   existingMemberIds = [],
 }: ProjectMemberFormDialogProps) {
   const { data: allUsers, isLoading: isLoadingUsers } = useGetUsers();
-  const addUser = useAddUserToProject();
+  const addMember = useAddMemberToProject();
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [selectedRole, setSelectedRole] = useState<string>("editor");
 
@@ -72,7 +72,7 @@ export function ProjectMemberFormDialog({
     }
 
     try {
-      await addUser.mutateAsync({
+      await addMember.mutateAsync({
         projectId,
         userId: selectedUserId,
         role: selectedRole,

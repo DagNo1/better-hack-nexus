@@ -64,14 +64,14 @@ export const useDeleteProject = () => {
   });
 };
 
-// User management hooks for projects
-export const useAddUserToProject = () => {
+// Member management hooks for projects
+export const useAddMemberToProject = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    ...trpc.project.addUser.mutationOptions(),
+    ...trpc.project.addMember.mutationOptions(),
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: trpc.project.getUsers.queryKey({
+        queryKey: trpc.project.getMembers.queryKey({
           projectId: variables.projectId,
         }),
       });
@@ -82,26 +82,26 @@ export const useAddUserToProject = () => {
   });
 };
 
-export const useRemoveUserFromProject = () => {
+export const useRemoveMemberFromProject = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    ...trpc.project.removeUser.mutationOptions(),
+    ...trpc.project.removeMember.mutationOptions(),
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({
-        queryKey: trpc.project.getUsers.queryKey({
+        queryKey: trpc.project.getMembers.queryKey({
           projectId: variables.projectId,
         }),
       });
       queryClient.invalidateQueries({
         queryKey: trpc.project.getAll.queryKey(),
       });
-      toast.success("User removed from project successfully");
+      toast.success("Member removed from project successfully");
     },
     onError: (error: any) => {
-      toast.error(error.message || "Failed to remove user from project");
+      toast.error(error.message || "Failed to remove member from project");
     },
   });
 };
 
-export const useGetProjectUsers = (projectId: string) =>
-  useQuery(trpc.project.getUsers.queryOptions({ projectId }));
+export const useGetProjectMembers = (projectId: string) =>
+  useQuery(trpc.project.getMembers.queryOptions({ projectId }));

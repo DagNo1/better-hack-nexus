@@ -4,7 +4,10 @@ import {
 } from "@/components/dialogs";
 import { columns } from "@/components/table/columns/project-member-column";
 import { DataTable } from "@/components/table/data-table";
-import { useGetProjectUsers, useRemoveUserFromProject } from "@/hooks/project";
+import {
+  useGetProjectMembers,
+  useRemoveMemberFromProject,
+} from "@/hooks/project";
 import { authClient } from "@/lib/auth-client";
 import type { ProjectMember } from "@/types/project";
 import { Edit, Trash } from "lucide-react";
@@ -15,8 +18,8 @@ interface ProjectMembersTableProps {
 }
 
 export function ProjectMembersTable({ projectId }: ProjectMembersTableProps) {
-  const { data: members, isLoading } = useGetProjectUsers(projectId);
-  const removeUser = useRemoveUserFromProject();
+  const { data: members, isLoading } = useGetProjectMembers(projectId);
+  const removeMember = useRemoveMemberFromProject();
 
   const [showForm, setShowForm] = useState(false);
   const [formMode, setFormMode] = useState<"add" | "edit">("add");
@@ -74,13 +77,13 @@ export function ProjectMembersTable({ projectId }: ProjectMembersTableProps) {
     if (!removingUser) return;
 
     try {
-      await removeUser.mutateAsync({
+      await removeMember.mutateAsync({
         projectId,
         userId: removingUser.id,
       });
       setRemovingUser(null);
     } catch (error) {
-      console.error("Failed to remove user from project:", error);
+      console.error("Failed to remove member from project:", error);
     }
   };
 
@@ -140,7 +143,7 @@ export function ProjectMembersTable({ projectId }: ProjectMembersTableProps) {
         confirmText="Remove"
         cancelText="Cancel"
         variant="destructive"
-        isLoading={removeUser.isPending}
+        isLoading={removeMember.isPending}
       />
     </DataTable>
   );

@@ -54,34 +54,52 @@ export const folderRouter = router({
           .string()
           .min(1, "Folder name is required")
           .max(100, "Folder name too long"),
-        projectId: z.string().min(1, "Project ID is required"),
+        projectId: z.string().optional(),
+        parentId: z.string().optional(),
       })
     )
     .mutation(async ({ input }) => {
-      // Check if project exists
-      const project = await prisma.project.findUnique({
-        where: { id: input.projectId },
-      });
-
-      if (!project) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Project not found",
+      // Check if project exists if projectId is provided
+      if (input.projectId) {
+        const project = await prisma.project.findUnique({
+          where: { id: input.projectId },
         });
+
+        if (!project) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Project not found",
+          });
+        }
       }
 
-      // Check for duplicate folder names within the same project
+      // Check if parent exists if parentId is provided
+      if (input.parentId) {
+        const parent = await prisma.folder.findUnique({
+          where: { id: input.parentId },
+        });
+
+        if (!parent) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Parent folder not found",
+          });
+        }
+      }
+
+      // Check for duplicate folder names within the same project or parent
       const existingFolder = await prisma.folder.findFirst({
         where: {
           name: input.name,
           projectId: input.projectId,
+          parentId: input.parentId,
         },
       });
 
       if (existingFolder) {
         throw new TRPCError({
           code: "CONFLICT",
-          message: "A folder with this name already exists in this project",
+          message: "A folder with this name already exists in this location",
         });
       }
 
@@ -89,6 +107,7 @@ export const folderRouter = router({
         data: {
           name: input.name,
           projectId: input.projectId,
+          parentId: input.parentId,
         },
       });
     }),
@@ -97,23 +116,18 @@ export const folderRouter = router({
     .input(
       z.object({
         id: z.string(),
-        name: z.string().min(1),
+        name: z.string().min(1).optional(),
         projectId: z.string().optional(),
+        parentId: z.string().optional(),
       })
     )
     .mutation(async ({ input }) => {
       try {
-        const data: { name: string; projectId?: string } = {
-          name: input.name,
-        };
-
-        if (input.projectId !== undefined) {
-          data.projectId = input.projectId;
-        }
+        const { id, ...updateData } = input;
 
         return await prisma.folder.update({
-          where: { id: input.id },
-          data,
+          where: { id },
+          data: updateData,
         });
       } catch (error) {
         throw new TRPCError({
@@ -136,178 +150,5 @@ export const folderRouter = router({
           message: "Folder not found",
         });
       }
-    }),
-
-  // User management endpoints
-  addUser: publicProcedure
-    .input(
-      z.object({
-        folderId: z.string(),
-        userId: z.string(),
-        role: z.string().default("viewer"),
-      })
-    )
-    .mutation(async ({ input }) => {
-      try {
-        // Check if folder exists
-        const folder = await prisma.folder.findUnique({
-          where: { id: input.folderId },
-        });
-
-        if (!folder) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "Folder not found",
-          });
-        }
-
-        // Check if user exists
-        const user = await prisma.user.findUnique({
-          where: { id: input.userId },
-        });
-
-        if (!user) {
-          throw new TRPCError({
-            code: "NOT_FOUND",
-            message: "User not found",
-          });
-        }
-
-        // Upsert membership with role
-        await prisma.folderMember.upsert({
-          where: {
-            folderId_userId: { folderId: input.folderId, userId: input.userId },
-          },
-          update: { role: input.role },
-          create: {
-            folderId: input.folderId,
-            userId: input.userId,
-            role: input.role,
-          },
-        });
-
-        return { success: true };
-      } catch (error) {
-        if (error instanceof TRPCError) throw error;
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to add user to folder",
-        });
-      }
-    }),
-
-  removeUser: publicProcedure
-    .input(
-      z.object({
-        folderId: z.string(),
-        userId: z.string(),
-      })
-    )
-    .mutation(async ({ input }) => {
-      try {
-        await prisma.folderMember.delete({
-          where: {
-            folderId_userId: { folderId: input.folderId, userId: input.userId },
-          },
-        });
-
-        return { success: true };
-      } catch (error) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to remove user from folder",
-        });
-      }
-    }),
-
-  getUsers: publicProcedure
-    .input(z.object({ folderId: z.string() }))
-    .query(async ({ input }) => {
-      const folder = await prisma.folder.findUnique({
-        where: { id: input.folderId },
-        select: { projectId: true },
-      });
-      if (!folder) {
-        throw new TRPCError({
-          code: "NOT_FOUND",
-          message: "Folder not found",
-        });
-      }
-
-      const members = await prisma.folderMember.findMany({
-        where: { folderId: input.folderId },
-        include: {
-          user: { select: { id: true, name: true, email: true, image: true } },
-        },
-      });
-
-      // Build base list from folder members
-      const folderMembersByUserId = new Map(members.map((m) => [m.userId, m]));
-      const result: Array<{
-        id: string;
-        name: string | null;
-        email: string | null;
-        image: string | null;
-        role: string;
-      }> = [];
-
-      // Optionally fetch project members (with user details) and merge
-      let projectMembers: Array<{
-        userId: string;
-        role: string;
-        user: {
-          id: string;
-          name: string | null;
-          email: string | null;
-          image: string | null;
-        };
-      }> = [];
-      if (folder.projectId) {
-        projectMembers = await prisma.projectMember.findMany({
-          where: { projectId: folder.projectId },
-          select: {
-            userId: true,
-            role: true,
-            user: {
-              select: { id: true, name: true, email: true, image: true },
-            },
-          },
-        });
-      }
-
-      const projectRoleByUserId = projectMembers.reduce<Record<string, string>>(
-        (acc, pm) => {
-          acc[pm.userId] = pm.role;
-          return acc;
-        },
-        {}
-      );
-
-      // First: add all folder members (prefer folder role over any project role)
-      for (const m of members) {
-        const projectRole = projectRoleByUserId[m.userId] ?? null;
-        result.push({
-          id: m.user.id,
-          name: m.user.name,
-          email: m.user.email,
-          image: m.user.image,
-          role: m.role, // prefer folder role
-        });
-      }
-
-      // Second: add project-only members not present in folder members
-      for (const pm of projectMembers) {
-        if (!folderMembersByUserId.has(pm.userId)) {
-          result.push({
-            id: pm.user.id,
-            name: pm.user.name,
-            email: pm.user.email,
-            image: pm.user.image,
-            role: pm.role, // project-only member role
-          });
-        }
-      }
-
-      return result;
     }),
 });

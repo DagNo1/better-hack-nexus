@@ -10,7 +10,6 @@ model User {
   sessions      Session[]
   accounts      Account[]
   projects      ProjectMember[]
-  folders       FolderMember[]
 
   @@unique([email])
   @@map("user")
