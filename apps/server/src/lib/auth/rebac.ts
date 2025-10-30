@@ -4,7 +4,7 @@ import { createAccessControl } from "better-auth-zanzibar-plugin";
 
 const resources = {
   project: ["delete", "read", "edit", "share", "manage-members"],
-  folder: ["delete", "read", "edit", "share"],
+  folder: ["delete", "read", "edit", "share", "view"],
   file: ["delete", "read", "edit", "share"],
   user: ["create", "delete", "read"],
 } as const;
@@ -21,9 +21,9 @@ const acRoles = ac.resourceRoles({
     { name: "viewer", actions: ["read"] },
   ],
   folder: [
-    { name: "owner", actions: ["delete", "read", "edit", "share"] },
-    { name: "editor", actions: ["read", "edit"] },
-    { name: "viewer", actions: ["read"] },
+    { name: "owner", actions: ["delete", "read", "edit", "share", "view"] },
+    { name: "editor", actions: ["read", "edit", "view"] },
+    { name: "viewer", actions: ["read", "view"] },
   ],
   file: [
     { name: "owner", actions: ["delete", "read", "edit", "share"] },
@@ -79,13 +79,14 @@ const policies = acRoles.roleConditions({
   folder: {
     owner: async (userId: string, resourceId: string) => {
       const folder = await prisma.folder.findFirst({
-        select: { projectId: true },
-        where: {
-          id: resourceId,
-        },
+        select: { projectId: true, parentId: true },
+        where: { id: resourceId },
       });
 
-      if (folder?.projectId) {
+      if (!folder) return false;
+
+      // If folder has direct project, check project ownership
+      if (folder.projectId) {
         return await acRoles.hasRole(
           "project",
           "owner",
@@ -94,17 +95,58 @@ const policies = acRoles.roleConditions({
         );
       }
 
+      // If folder has parent, inherit from parent folder
+      if (folder.parentId) {
+        return await acRoles.hasRole(
+          "folder",
+          "owner",
+          userId,
+          folder.parentId
+        );
+      }
+
+      return false;
+    },
+    editor: async (userId: string, resourceId: string) => {
+      const folder = await prisma.folder.findFirst({
+        select: { projectId: true, parentId: true },
+        where: { id: resourceId },
+      });
+
+      if (!folder) return false;
+
+      // If folder has direct project, check project editor role
+      if (folder.projectId) {
+        return await acRoles.hasRole(
+          "project",
+          "editor",
+          userId,
+          folder.projectId
+        );
+      }
+
+      // If folder has parent, inherit from parent folder
+      if (folder.parentId) {
+        return await acRoles.hasRole(
+          "folder",
+          "editor",
+          userId,
+          folder.parentId
+        );
+      }
+
       return false;
     },
     viewer: async (userId: string, resourceId: string) => {
       const folder = await prisma.folder.findFirst({
-        select: { projectId: true },
-        where: {
-          id: resourceId,
-        },
+        select: { projectId: true, parentId: true },
+        where: { id: resourceId },
       });
 
-      if (folder?.projectId) {
+      if (!folder) return false;
+
+      // If folder has direct project, check project viewer role
+      if (folder.projectId) {
         return await acRoles.hasRole(
           "project",
           "viewer",
@@ -113,21 +155,16 @@ const policies = acRoles.roleConditions({
         );
       }
 
-      return false;
-    },
-    editor: async (userId: string, resourceId: string) => {
-      const folder = await prisma.folder.findFirst({
-        select: { projectId: true },
-        where: { id: resourceId },
-      });
-      if (folder?.projectId) {
+      // If folder has parent, inherit from parent folder
+      if (folder.parentId) {
         return await acRoles.hasRole(
-          "project",
-          "editor",
+          "folder",
+          "viewer",
           userId,
-          folder.projectId
+          folder.parentId
         );
       }
+
       return false;
     },
   },

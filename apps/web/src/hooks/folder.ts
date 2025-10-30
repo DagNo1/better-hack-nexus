@@ -9,6 +9,8 @@ export const useGetFolderById = (id: string) =>
   useQuery(trpc.folder.getById.queryOptions({ id }));
 export const useGetFoldersByProject = (projectId: string) =>
   useQuery(trpc.folder.getByProject.queryOptions({ projectId }));
+export const useGetFoldersByParent = (parentId: string) =>
+  useQuery(trpc.folder.getByParent.queryOptions({ parentId }));
 
 // Mutation hooks
 export const useCreateFolder = () => {

@@ -170,11 +170,7 @@ export default function FolderDetailPage() {
 
       {/* Main Content */}
       <main className="w-full mx-auto px-4 py-8 flex flex-col gap-8">
-        <SubfoldersTable
-          folderId={folderId}
-          subfolders={(folder as any).children || []}
-          isLoading={isLoading}
-        />
+        <SubfoldersTable folderId={folderId} />
         <FilesTable folderId={folderId} />
       </main>
 

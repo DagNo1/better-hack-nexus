@@ -1,7 +1,7 @@
 import { ConfirmationDialog, FolderFormDialog } from "@/components/dialogs";
 import { columns } from "@/components/table/columns/folder-column";
 import { DataTable } from "@/components/table/data-table";
-import { useDeleteFolder } from "@/hooks/folder";
+import { useDeleteFolder, useGetFoldersByParent } from "@/hooks/folder";
 import { authClient } from "@/lib/auth-client";
 import type { Folder } from "@/types/project";
 import { Edit, Trash, FolderOpen } from "lucide-react";
@@ -10,16 +10,11 @@ import { useRouter } from "next/navigation";
 
 interface SubfoldersTableProps {
   folderId: string;
-  subfolders?: Folder[];
-  isLoading: boolean;
 }
 
-export function SubfoldersTable({
-  folderId,
-  subfolders = [],
-  isLoading,
-}: SubfoldersTableProps) {
+export function SubfoldersTable({ folderId }: SubfoldersTableProps) {
   const router = useRouter();
+  const { data: subfolders, isLoading } = useGetFoldersByParent(folderId);
   const deleteFolder = useDeleteFolder();
 
   const [showForm, setShowForm] = useState(false);
@@ -31,10 +26,11 @@ export function SubfoldersTable({
   // Batch check all permissions
   useEffect(() => {
     const checkAllPermissions = async () => {
-      if (!subfolders || subfolders.length === 0) return;
+      if (!subfolders) return;
 
       const checks: Record<string, any> = {};
 
+      console.log("folderId", folderId);
       // Create permission (based on parent folder)
       checks["create-subfolder"] = {
         resourceType: "folder",

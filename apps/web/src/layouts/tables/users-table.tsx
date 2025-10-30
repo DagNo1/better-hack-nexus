@@ -23,7 +23,7 @@ export function UsersTable() {
   // Batch check all permissions
   useEffect(() => {
     const checkAllPermissions = async () => {
-      if (!users || users.length === 0) return;
+      if (!users) return;
 
       const checks: Record<string, any> = {};
 

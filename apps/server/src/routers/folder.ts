@@ -47,6 +47,20 @@ export const folderRouter = router({
       });
     }),
 
+  getByParent: publicProcedure
+    .input(z.object({ parentId: z.string() }))
+    .query(async ({ input }) => {
+      return await prisma.folder.findMany({
+        where: { parentId: input.parentId },
+        orderBy: {
+          createdAt: "desc",
+        },
+        include: {
+          project: true,
+        },
+      });
+    }),
+
   create: publicProcedure
     .input(
       z.object({

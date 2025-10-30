@@ -30,7 +30,7 @@ export function ProjectsTable() {
   // Batch check all permissions
   useEffect(() => {
     const checkAllPermissions = async () => {
-      if (!projects || projects.length === 0) return;
+      if (!projects) return;
 
       const checks: Record<string, any> = {};
 
