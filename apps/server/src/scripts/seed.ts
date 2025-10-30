@@ -192,6 +192,53 @@ const SAMPLE_PROJECTS = [
             content: "# Research Methodology\n\nOur approach and methods.",
           },
         ],
+        subfolders: [
+          {
+            name: "Drafts",
+            documents: [
+              {
+                name: "Draft v1",
+                content:
+                  "# Draft Version 1\n\nFirst draft of the research paper.",
+              },
+              {
+                name: "Draft v2",
+                content: "# Draft Version 2\n\nSecond draft with revisions.",
+              },
+            ],
+          },
+          {
+            name: "Published",
+            documents: [
+              {
+                name: "Final Paper",
+                content:
+                  "# Final Published Paper\n\nThe final version submitted for publication.",
+              },
+            ],
+          },
+        ],
+      },
+      {
+        name: "Data",
+        documents: [
+          {
+            name: "Raw Data",
+            content: "# Raw Data\n\nOriginal data collected from experiments.",
+          },
+        ],
+        subfolders: [
+          {
+            name: "Analysis",
+            documents: [
+              {
+                name: "Statistical Analysis",
+                content:
+                  "# Statistical Analysis\n\nResults of statistical tests.",
+              },
+            ],
+          },
+        ],
       },
     ],
   },
@@ -289,6 +336,16 @@ async function createProject(
   });
 
   console.log(`✓ Created project: ${project.name}`);
+
+  // Add owner as project member with owner role
+  await prisma.projectMember.create({
+    data: {
+      projectId: project.id,
+      userId: ownerId,
+      role: "owner",
+    },
+  });
+  console.log(`  ✓ Added owner: ${projectData.ownerEmail} as owner`);
 
   // Create project members
   for (const memberData of projectData.members) {
