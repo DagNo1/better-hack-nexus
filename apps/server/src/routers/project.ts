@@ -7,7 +7,7 @@ export const projectRouter = router({
   getAll: publicProcedure.query(async () => {
     return await prisma.project.findMany({
       orderBy: {
-        createdAt: "desc",
+        createdAt: "asc",
       },
       include: {
         folders: {

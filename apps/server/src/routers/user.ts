@@ -18,7 +18,7 @@ export const userRouter = router({
         updatedAt: true,
       },
       orderBy: {
-        createdAt: "desc",
+        createdAt: "asc",
       },
     });
   }),

@@ -6,7 +6,7 @@ import { createContext } from "./lib/context";
 import { appRouter } from "./routers/index";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { auth } from "./lib/auth/auth";
-import { seedDatabase } from "./scripts/seed";
+import { seedDatabase } from "./utils/seed";
 
 const app = new Elysia({ adapter: node() })
   .use(

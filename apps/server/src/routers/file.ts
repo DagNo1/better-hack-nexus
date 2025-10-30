@@ -7,7 +7,7 @@ export const fileRouter = router({
   getAll: publicProcedure.query(async () => {
     return await prisma.file.findMany({
       orderBy: {
-        createdAt: "desc",
+        createdAt: "asc",
       },
       include: {
         folder: true,
