@@ -48,6 +48,17 @@ export const useCreateFolder = () => {
         );
       }
 
+      // Invalidate parent folder queries if parentId exists
+      if (variables.parentId) {
+        invalidatePromises.push(
+          queryClient.invalidateQueries({
+            queryKey: trpc.folder.getById.queryKey({
+              id: variables.parentId,
+            }),
+          })
+        );
+      }
+
       // Invalidate all projects to update folder counts
       invalidatePromises.push(
         queryClient.invalidateQueries({

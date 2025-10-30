@@ -1,6 +1,6 @@
 "use client";
 
-import { useCreateFolder, useUpdateFolder } from "@/hooks/folder";
+import { useCreateFile, useUpdateFile } from "@/hooks/file";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@workspace/ui/components/button";
 import {
@@ -16,71 +16,71 @@ import { Label } from "@workspace/ui/components/label";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import type { Folder } from "@/types/project";
+import type { File } from "@/components/table/columns/file-column";
 
 // Form validation schema
-const folderFormSchema = z.object({
+const fileFormSchema = z.object({
   name: z
     .string()
-    .min(1, "Folder name is required")
-    .max(100, "Folder name must be 100 characters or less")
+    .min(1, "File name is required")
+    .max(255, "File name must be 255 characters or less")
     .trim(),
+  content: z.string().default(""),
 });
 
-type FolderFormData = z.infer<typeof folderFormSchema>;
+type FileFormData = z.infer<typeof fileFormSchema>;
 
-interface FolderFormDialogProps {
+interface FileFormDialogProps {
   mode: "create" | "edit";
-  folder?: Folder | null;
-  projectId?: string;
-  parentId?: string;
+  file?: File | null;
+  folderId?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function FolderFormDialog({
+export function FileFormDialog({
   mode,
-  folder,
-  projectId,
-  parentId,
+  file,
+  folderId,
   open,
   onOpenChange,
-}: FolderFormDialogProps) {
-  const createFolder = useCreateFolder();
-  const updateFolder = useUpdateFolder();
+}: FileFormDialogProps) {
+  const createFile = useCreateFile();
+  const updateFile = useUpdateFile();
 
-  const form = useForm<FolderFormData>({
-    resolver: zodResolver(folderFormSchema),
+  const form = useForm<FileFormData>({
+    resolver: zodResolver(fileFormSchema),
     defaultValues: {
       name: "",
+      content: "",
     },
   });
 
   useEffect(() => {
-    if (mode === "edit" && folder) {
-      form.setValue("name", folder.name);
+    if (mode === "edit" && file) {
+      form.setValue("name", file.name);
+      form.setValue("content", file.content);
     } else if (mode === "create") {
       form.reset();
     }
-  }, [mode, folder, open, form]);
+  }, [mode, file, open, form]);
 
-  const handleSubmit = async (data: FolderFormData) => {
+  const handleSubmit = async (data: FileFormData) => {
     try {
       if (mode === "create") {
-        if (!projectId && !parentId) {
-          throw new Error(
-            "Either Project ID or Parent ID is required for creating folders"
-          );
+        if (!folderId) {
+          throw new Error("Folder ID is required for creating files");
         }
-        await createFolder.mutateAsync({
+        await createFile.mutateAsync({
           name: data.name,
-          projectId,
-          parentId,
+          content: data.content,
+          folderId,
         });
-      } else if (mode === "edit" && folder) {
-        await updateFolder.mutateAsync({
-          id: folder.id,
+      } else if (mode === "edit" && file) {
+        await updateFile.mutateAsync({
+          id: file.id,
           name: data.name,
+          content: data.content,
         });
       }
       form.reset();
@@ -96,34 +96,50 @@ export function FolderFormDialog({
     onOpenChange(false);
   };
 
-  const isLoading = createFolder.isPending || updateFolder.isPending;
+  const isLoading = createFile.isPending || updateFile.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {mode === "create" ? "Create New Folder" : "Edit Folder"}
+            {mode === "create" ? "Create New File" : "Edit File"}
           </DialogTitle>
           <DialogDescription>
             {mode === "create"
-              ? "Add a new folder to this project."
-              : "Update the folder name and settings."}
+              ? "Add a new file to this folder."
+              : "Update the file name and content."}
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="folder-name">Folder Name</Label>
+            <Label htmlFor="file-name">File Name</Label>
             <Input
-              id="folder-name"
-              placeholder="Enter folder name"
+              id="file-name"
+              placeholder="Enter file name"
               {...form.register("name")}
               disabled={isLoading}
             />
             {form.formState.errors.name && (
               <p className="text-sm text-destructive">
                 {form.formState.errors.name.message}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="file-content">Content</Label>
+            <textarea
+              id="file-content"
+              placeholder="Enter file content"
+              className="w-full min-h-[120px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              {...form.register("content")}
+              disabled={isLoading}
+            />
+            {form.formState.errors.content && (
+              <p className="text-sm text-destructive">
+                {form.formState.errors.content.message}
               </p>
             )}
           </div>
@@ -146,8 +162,8 @@ export function FolderFormDialog({
                   ? "Creating..."
                   : "Updating..."
                 : mode === "create"
-                  ? "Create Folder"
-                  : "Update Folder"}
+                  ? "Create File"
+                  : "Update File"}
             </Button>
           </DialogFooter>
         </form>

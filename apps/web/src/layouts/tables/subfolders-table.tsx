@@ -1,20 +1,25 @@
 import { ConfirmationDialog, FolderFormDialog } from "@/components/dialogs";
 import { columns } from "@/components/table/columns/folder-column";
 import { DataTable } from "@/components/table/data-table";
-import { useDeleteFolder, useGetFoldersByProject } from "@/hooks/folder";
+import { useDeleteFolder } from "@/hooks/folder";
 import { authClient } from "@/lib/auth-client";
 import type { Folder } from "@/types/project";
 import { Edit, Trash, FolderOpen } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-interface FoldersTableProps {
-  projectId: string;
+interface SubfoldersTableProps {
+  folderId: string;
+  subfolders?: Folder[];
+  isLoading: boolean;
 }
 
-export function FoldersTable({ projectId }: FoldersTableProps) {
+export function SubfoldersTable({
+  folderId,
+  subfolders = [],
+  isLoading,
+}: SubfoldersTableProps) {
   const router = useRouter();
-  const { data: folders, isLoading } = useGetFoldersByProject(projectId);
   const deleteFolder = useDeleteFolder();
 
   const [showForm, setShowForm] = useState(false);
@@ -26,24 +31,19 @@ export function FoldersTable({ projectId }: FoldersTableProps) {
   // Batch check all permissions
   useEffect(() => {
     const checkAllPermissions = async () => {
-      if (!folders) return;
+      if (!subfolders || subfolders.length === 0) return;
 
       const checks: Record<string, any> = {};
 
-      // Create permission (based on project)
-      checks["create-folder"] = {
-        resourceType: "project",
+      // Create permission (based on parent folder)
+      checks["create-subfolder"] = {
+        resourceType: "folder",
         action: "edit",
-        resourceId: projectId,
+        resourceId: folderId,
       };
 
       // Per-folder permissions
-      folders.forEach((folder) => {
-        checks[`${folder.id}-view`] = {
-          resourceType: "folder",
-          resourceId: folder.id,
-          action: "view",
-        };
+      subfolders.forEach((folder) => {
         checks[`${folder.id}-edit`] = {
           resourceType: "folder",
           resourceId: folder.id,
@@ -53,6 +53,11 @@ export function FoldersTable({ projectId }: FoldersTableProps) {
           resourceType: "folder",
           resourceId: folder.id,
           action: "delete",
+        };
+        checks[`${folder.id}-view`] = {
+          resourceType: "folder",
+          resourceId: folder.id,
+          action: "view",
         };
       });
 
@@ -71,7 +76,7 @@ export function FoldersTable({ projectId }: FoldersTableProps) {
     };
 
     checkAllPermissions();
-  }, [folders, projectId]);
+  }, [subfolders, folderId]);
 
   const handleCreateFolder = () => {
     setFormMode("create");
@@ -89,10 +94,6 @@ export function FoldersTable({ projectId }: FoldersTableProps) {
     setDeletingFolder(folder);
   };
 
-  const handleOpenFolder = (folder: Folder) => {
-    router.push(`/folder/${folder.id}`);
-  };
-
   const handleConfirmDelete = async () => {
     if (!deletingFolder) return;
 
@@ -104,9 +105,13 @@ export function FoldersTable({ projectId }: FoldersTableProps) {
     }
   };
 
+  const handleOpenFolder = (folder: Folder) => {
+    router.push(`/folder/${folder.id}`);
+  };
+
   return (
     <DataTable
-      data={folders}
+      data={subfolders}
       isLoading={isLoading}
       columns={columns}
       actions={[
@@ -136,22 +141,22 @@ export function FoldersTable({ projectId }: FoldersTableProps) {
             permissions[`${folder.id}-delete`]?.allowed ?? false,
         },
       ]}
-      title="Folders"
+      title="Subfolders"
       createButton={{
-        label: "New Folder",
+        label: "New Subfolder",
         onClick: handleCreateFolder,
-        show: permissions["create-folder"]?.allowed ?? false,
+        show: permissions["create-subfolder"]?.allowed ?? false,
       }}
       emptyState={{
-        title: "No Folders Yet",
-        description: "Get started by creating your first folder",
+        title: "No Subfolders Yet",
+        description: "Get started by creating your first subfolder",
       }}
       getRowKey={(folder) => folder.id}
     >
       <FolderFormDialog
         mode={formMode}
         folder={editingFolder}
-        projectId={projectId}
+        parentId={folderId} // Use parent folder ID for creating subfolders
         open={showForm}
         onOpenChange={setShowForm}
       />
@@ -160,8 +165,8 @@ export function FoldersTable({ projectId }: FoldersTableProps) {
         open={!!deletingFolder}
         onOpenChange={(open) => !open && setDeletingFolder(null)}
         onConfirm={handleConfirmDelete}
-        title="Delete Folder"
-        description={`Are you sure you want to delete "${deletingFolder?.name}"? This action cannot be undone.`}
+        title="Delete Subfolder"
+        description={`Are you sure you want to delete "${deletingFolder?.name}"? This action cannot be undone and will remove all nested folders and files.`}
         confirmText="Delete"
         cancelText="Cancel"
         variant="destructive"
