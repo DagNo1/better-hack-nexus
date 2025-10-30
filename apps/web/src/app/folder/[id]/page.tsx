@@ -5,9 +5,9 @@ import { ConfirmationDialog, FolderFormDialog } from "@/components/dialogs";
 import {
   useDeleteFolder,
   useGetFolderById,
+  useGetFolderPath,
   useUpdateFolder,
 } from "@/hooks/folder";
-import { useGetProjectById } from "@/hooks/project";
 import { FilesTable } from "@/layouts/tables/files-table";
 import { SubfoldersTable } from "@/layouts/tables/subfolders-table";
 import { Button } from "@workspace/ui/components/button";
@@ -16,7 +16,6 @@ import { ChevronRight, Edit, FolderIcon, Loader2, Trash } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import { toast } from "sonner";
 
 export default function FolderDetailPage() {
   const params = useParams();
@@ -24,8 +23,7 @@ export default function FolderDetailPage() {
   const folderId = params.id as string;
 
   const { data: folder, isLoading } = useGetFolderById(folderId);
-  const { data: project } = useGetProjectById(folder?.projectId || "");
-  const updateFolder = useUpdateFolder();
+  const { data: folderPath } = useGetFolderPath(folderId);
   const deleteFolder = useDeleteFolder();
 
   const [showEditForm, setShowEditForm] = useState(false);
@@ -35,20 +33,55 @@ export default function FolderDetailPage() {
   const buildBreadcrumbs = () => {
     const breadcrumbs: { name: string; href: string }[] = [];
 
-    if (project) {
-      breadcrumbs.push({
-        name: project.name,
-        href: `/project/${project.id}`,
-      });
-    }
+    // Add all items from path (excluding current folder)
+    if (folderPath && folderPath.length > 1) {
+      const pathWithoutCurrent = folderPath.slice(0, -1);
 
-    // For now, just show current folder
-    // In a real implementation, you'd fetch the full parent chain
-    if (folder?.parentId) {
-      breadcrumbs.push({
-        name: "...",
-        href: `/folder/${folder.parentId}`,
-      });
+      // If path is too long (more than 4 levels including project), show first, "...", and last
+      if (pathWithoutCurrent.length > 4) {
+        const firstItem = pathWithoutCurrent[0];
+        const lastItem = pathWithoutCurrent[pathWithoutCurrent.length - 1];
+
+        if (firstItem && lastItem) {
+          // First item (usually project)
+          breadcrumbs.push({
+            name: firstItem.name,
+            href:
+              firstItem.type === "project"
+                ? `/project/${firstItem.id}`
+                : `/folder/${firstItem.id}`,
+          });
+
+          // Ellipsis
+          breadcrumbs.push({
+            name: "...",
+            href:
+              lastItem.type === "project"
+                ? `/project/${lastItem.id}`
+                : `/folder/${lastItem.id}`,
+          });
+
+          // Last item before current
+          breadcrumbs.push({
+            name: lastItem.name,
+            href:
+              lastItem.type === "project"
+                ? `/project/${lastItem.id}`
+                : `/folder/${lastItem.id}`,
+          });
+        }
+      } else {
+        // Show all items in path
+        pathWithoutCurrent.forEach((item) => {
+          breadcrumbs.push({
+            name: item.name,
+            href:
+              item.type === "project"
+                ? `/project/${item.id}`
+                : `/folder/${item.id}`,
+          });
+        });
+      }
     }
 
     return breadcrumbs;
@@ -65,31 +98,23 @@ export default function FolderDetailPage() {
   const handleConfirmDelete = async () => {
     try {
       await deleteFolder.mutateAsync({ id: folderId });
-      // Navigate back to project or parent folder
-      if (folder?.projectId) {
-        router.push(`/project/${folder.projectId}`);
-      } else if (folder?.parentId) {
-        router.push(`/folder/${folder.parentId}`);
+      // Navigate back to parent folder or project
+      if (folderPath && folderPath.length > 1) {
+        const parentItem = folderPath[folderPath.length - 2];
+        if (parentItem) {
+          if (parentItem.type === "project") {
+            router.push(`/project/${parentItem.id}`);
+          } else {
+            router.push(`/folder/${parentItem.id}`);
+          }
+        } else {
+          router.push("/");
+        }
       } else {
         router.push("/");
       }
     } catch (error) {
       console.error("Failed to delete folder:", error);
-    }
-  };
-
-  const handleFormSubmit = async (data: { name: string }) => {
-    try {
-      await updateFolder.mutateAsync({
-        id: folderId,
-        name: data.name,
-      });
-      setShowEditForm(false);
-      toast.success("Folder updated successfully");
-    } catch (error) {
-      console.error("Form submission error:", error);
-      toast.error("Failed to update folder. Please try again.");
-      throw error;
     }
   };
 

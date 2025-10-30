@@ -61,6 +61,56 @@ export const folderRouter = router({
       });
     }),
 
+  getPath: publicProcedure
+    .input(z.object({ folderId: z.string() }))
+    .query(async ({ input }) => {
+      const path: Array<{
+        id: string;
+        name: string;
+        type: "folder" | "project";
+      }> = [];
+      let currentFolderId: string | null = input.folderId;
+      let projectId: string | null = null;
+
+      // Traverse up the folder tree
+      while (currentFolderId) {
+        const folder: {
+          id: string;
+          name: string;
+          parentId: string | null;
+          projectId: string | null;
+        } | null = await prisma.folder.findUnique({
+          where: { id: currentFolderId },
+          select: { id: true, name: true, parentId: true, projectId: true },
+        });
+
+        if (!folder) break;
+
+        path.unshift({ id: folder.id, name: folder.name, type: "folder" });
+
+        // Store projectId if found
+        if (folder.projectId) {
+          projectId = folder.projectId;
+        }
+
+        currentFolderId = folder.parentId;
+      }
+
+      // Add project at the beginning if found
+      if (projectId) {
+        const project = await prisma.project.findUnique({
+          where: { id: projectId },
+          select: { id: true, name: true },
+        });
+
+        if (project) {
+          path.unshift({ id: project.id, name: project.name, type: "project" });
+        }
+      }
+
+      return path;
+    }),
+
   create: publicProcedure
     .input(
       z.object({

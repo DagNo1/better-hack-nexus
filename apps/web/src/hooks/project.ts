@@ -24,6 +24,12 @@ export const useCreateProject = () => {
       queryClient.invalidateQueries({
         queryKey: trpc.folder.getById.queryKey(),
       });
+      queryClient.invalidateQueries({
+        queryKey: trpc.folder.getByParent.queryKey(),
+      });
+      queryClient.invalidateQueries({
+        queryKey: trpc.folder.getByProject.queryKey(),
+      });
       toast.success("Project created successfully");
     },
     onError: (error: any) => {
