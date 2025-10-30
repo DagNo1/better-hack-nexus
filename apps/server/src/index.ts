@@ -6,6 +6,7 @@ import { createContext } from "./lib/context";
 import { appRouter } from "./routers/index";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { auth } from "./lib/auth/auth";
+import { seedDatabase } from "./scripts/seed";
 
 const app = new Elysia({ adapter: node() })
   .use(
@@ -33,6 +34,7 @@ const app = new Elysia({ adapter: node() })
     return res;
   })
   .get("/", () => "OK")
-  .listen(3000, () => {
+  .listen(3000, async () => {
     console.log("Server is running on http://localhost:3000");
+    await seedDatabase(false);
   });

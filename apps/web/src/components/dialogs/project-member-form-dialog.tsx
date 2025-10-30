@@ -179,19 +179,19 @@ export function ProjectMemberFormDialog({
               type="button"
               variant="outline"
               onClick={handleCancel}
-              disabled={addUser.isPending}
+              disabled={addMember.isPending}
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={
-                addUser.isPending ||
+                addMember.isPending ||
                 !selectedUserId ||
                 (mode === "add" && availableUsers.length === 0)
               }
             >
-              {addUser.isPending
+              {addMember.isPending
                 ? mode === "add"
                   ? "Adding..."
                   : "Updating..."

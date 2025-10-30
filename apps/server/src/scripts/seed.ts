@@ -374,13 +374,10 @@ async function createProject(
   return project;
 }
 
-async function main() {
+export async function seedDatabase(forceReseed = false) {
   logger.info("🌱 Starting database seeding...\n");
 
   try {
-    // Check if we should force reseed (--force flag)
-    const forceReseed = process.argv.includes("--force");
-
     // Check if data already exists
     const existingUsers = await prisma.user.count();
     const existingProjects = await prisma.project.count();
@@ -392,7 +389,7 @@ async function main() {
         );
       } else {
         logger.info(
-          `Found ${existingUsers} users and ${existingProjects} projects already seeded. Use --force flag to reseed.`
+          `Found ${existingUsers} users and ${existingProjects} projects already seeded. Skipping seed.`
         );
         return;
       }
@@ -448,11 +445,15 @@ async function main() {
   }
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+// Run seed when executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const forceReseed = process.argv.includes("--force");
+  seedDatabase(forceReseed)
+    .catch((e) => {
+      console.error(e);
+      process.exit(1);
+    })
+    .finally(async () => {
+      await prisma.$disconnect();
+    });
+}
