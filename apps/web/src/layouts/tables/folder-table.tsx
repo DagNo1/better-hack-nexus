@@ -2,8 +2,9 @@ import { ConfirmationDialog, FolderFormDialog } from "@/components/dialogs";
 import { columns } from "@/components/table/columns/folder-column";
 import { DataTable, type TableAction } from "@/components/table/data-table";
 import { useDeleteFolder, useGetFoldersByProject } from "@/hooks/folder";
-import type { Folder } from "@/types/project";
-import { Edit, Trash } from "lucide-react";
+import type { Folder } from "@/types/api";
+import { Edit, ExternalLink, Trash } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 interface FoldersTableProps {
@@ -13,6 +14,7 @@ interface FoldersTableProps {
 export function FoldersTable({ projectId }: FoldersTableProps) {
   const { data: folders, isLoading } = useGetFoldersByProject(projectId);
   const deleteFolder = useDeleteFolder();
+  const router = useRouter();
 
   const [showForm, setShowForm] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
@@ -46,12 +48,27 @@ export function FoldersTable({ projectId }: FoldersTableProps) {
     }
   };
 
+  const handleViewFolder = (folder: Folder) => {
+    router.push(`/folder/${folder.id}`);
+  };
+
   const actions: TableAction<Folder>[] = [
     {
       key: "edit",
       label: "Edit",
       icon: Edit,
       onClick: handleEditFolder,
+      permission: {
+        resourceType: "folder",
+        resourceId: (folder) => folder.id,
+        action: "edit",
+      },
+    },
+    {
+      key: "view",
+      label: "View Details",
+      icon: ExternalLink,
+      onClick: handleViewFolder,
       permission: {
         resourceType: "folder",
         resourceId: (folder) => folder.id,

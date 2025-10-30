@@ -1,19 +1,23 @@
-import type { Folder } from "@/types/api";
-import { FolderIcon } from "lucide-react";
-import type { Column } from "../data-table";
-import { formatDate } from "../data-table";
+import { File as FileIcon } from "lucide-react";
+import { formatDate, type Column } from "../data-table";
+import type { File } from "@/types/api";
 
-const columns: Column<Folder>[] = [
+const columns: Column<File>[] = [
   {
     key: "name",
     label: "Name",
-    width: "w-[300px]",
+    width: "w-[200px]",
     render: (value) => (
       <div className="flex items-center gap-2">
-        <FolderIcon className="h-4 w-4 text-muted-foreground" />
+        <FileIcon className="h-4 w-4 text-muted-foreground" />
         {value}
       </div>
     ),
+  },
+  {
+    key: "content",
+    label: "Content",
+    width: "w-[250px]",
   },
   {
     key: "createdAt",

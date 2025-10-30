@@ -1,8 +1,8 @@
 "use client";
 
-import { useAddUserToProject } from "@/hooks/project";
+import { useAddUserToFolder } from "@/hooks/folder";
 import { useGetUsers } from "@/hooks/user";
-import type { ProjectMember } from "@/types/api";
+import type { FolderMember } from "@/types/api";
 import { Button } from "@workspace/ui/components/button";
 import {
   Dialog,
@@ -24,25 +24,25 @@ import { UserPlus, Edit } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-interface ProjectMemberFormDialogProps {
+interface FolderMemberFormDialogProps {
   mode: "add" | "edit";
-  projectId: string;
-  member?: ProjectMember | null;
+  folderId: string;
+  member?: FolderMember | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   existingMemberIds?: string[];
 }
 
-export function ProjectMemberFormDialog({
+export function FolderMemberFormDialog({
   mode,
-  projectId,
+  folderId,
   member,
   open,
   onOpenChange,
   existingMemberIds = [],
-}: ProjectMemberFormDialogProps) {
+}: FolderMemberFormDialogProps) {
   const { data: allUsers, isLoading: isLoadingUsers } = useGetUsers();
-  const addUser = useAddUserToProject();
+  const addUser = useAddUserToFolder();
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const [selectedRole, setSelectedRole] = useState<string>("editor");
 
@@ -73,7 +73,7 @@ export function ProjectMemberFormDialog({
 
     try {
       await addUser.mutateAsync({
-        projectId,
+        folderId,
         userId: selectedUserId,
         role: selectedRole,
       });
@@ -109,13 +109,13 @@ export function ProjectMemberFormDialog({
           <div className="flex items-center gap-2">
             <Icon className="h-5 w-5 text-primary" />
             <DialogTitle>
-              {mode === "add" ? "Add Project Member" : "Edit Member Role"}
+              {mode === "add" ? "Add Folder Member" : "Edit Member Role"}
             </DialogTitle>
           </div>
           <DialogDescription>
             {mode === "add"
-              ? "Add an existing user to this project."
-              : "Update the member's role in this project."}
+              ? "Add an existing user to this folder."
+              : "Update the member's role in this folder."}
           </DialogDescription>
         </DialogHeader>
 

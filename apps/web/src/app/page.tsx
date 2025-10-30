@@ -1,6 +1,6 @@
 "use client";
 
-import { ProjectsTable } from "@/layouts/tables/projects-table";
+import { ProjectsTable } from "@/layouts/tables/project-table";
 import { UsersTable } from "@/layouts/tables/users-table";
 import {
   RedirectToSignIn,
@@ -15,13 +15,17 @@ export default function Home() {
       {/* Header */}
       <header className="border-b">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 w-full">
             <SignedIn>
-              <UserButton className="bg-background text-white hover:bg-primary/10" />
-              <h1 className="text-2xl font-bold">Better Hack Nexus</h1>
-              <p className="text-sm text-muted-foreground">
-                A Demo app for showing how the Google Zanzibar ReBAC works
-              </p>
+              <div className="flex flex-row items-center w-full justify-between py-4">
+                <div className="flex flex-col gap-2 w-full">
+                  <h1 className="text-2xl font-bold">Better Hack Nexus</h1>
+                  <p className="text-sm text-muted-foreground">
+                    A Demo app for showing how the Google Zanzibar ReBAC works
+                  </p>
+                </div>
+                <UserButton className="bg-background text-white hover:bg-primary/10 w-fit" />
+              </div>
             </SignedIn>
             <SignedOut>
               <RedirectToSignIn />

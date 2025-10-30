@@ -1,8 +1,8 @@
 import { Mail } from "lucide-react";
 import type { Column } from "../data-table";
-import type { ProjectMember } from "@/types/api";
+import type { FolderMember } from "@/types/api";
 
-const columns: Column<ProjectMember>[] = [
+const columns: Column<FolderMember>[] = [
   {
     key: "name",
     label: "Name",

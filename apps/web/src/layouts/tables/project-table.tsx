@@ -7,7 +7,7 @@ import {
   useGetProjects,
   useUpdateProject,
 } from "@/hooks/project";
-import type { Project, ProjectFormData } from "@/types/project";
+import type { Project, ProjectFormData } from "@/types/api";
 import { Edit, ExternalLink, Trash } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";

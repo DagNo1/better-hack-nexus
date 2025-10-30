@@ -61,14 +61,29 @@ export interface FolderMember {
   role: string;
 }
 
-export interface CreateFolderInput {
+export interface FolderFormData {
   name: string;
-  projectId?: string;
-  parentId?: string;
 }
 
-export interface UpdateFolderInput {
+
+export interface CreateFileInput {
+  name: string;
+  content?: string;
+  folderId: string;
+}
+
+export interface UpdateFileInput {
   id: string;
   name?: string;
-  parentId?: string;
+  content?: string;
+  folderId?: string;
+}
+
+export interface File {
+  id: string;
+  name: string;
+  content?: string;
+  createdAt: string;
+  updatedAt: string;
+  folderId: string;
 }

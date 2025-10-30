@@ -1,4 +1,4 @@
-import type { Project } from "@/types/project";
+import type { Project } from "@/types/api";
 import type { Column } from "../data-table";
 import { formatDate } from "../data-table";
 

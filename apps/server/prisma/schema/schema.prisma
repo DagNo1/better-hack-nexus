@@ -33,7 +33,7 @@ model Folder {
   project   Project?       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   parent    Folder?        @relation("FolderChildren", fields: [parentId], references: [id], onDelete: Cascade)
   children  Folder[]       @relation("FolderChildren")
-  documents Document[]
+  files     File[]
 
   @@map("folders")
 }
@@ -66,7 +66,7 @@ model FolderMember {
   @@map("folder_members")
 }
 
-model Document {
+model File {
   id        String   @id @default(cuid()) @map("_id")
   name      String
   content   String
@@ -76,5 +76,5 @@ model Document {
 
   folder Folder @relation(fields: [folderId], references: [id], onDelete: Cascade)
 
-  @@map("documents")
+  @@map("files")
 }

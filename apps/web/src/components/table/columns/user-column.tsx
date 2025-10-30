@@ -1,4 +1,4 @@
-import type { User } from "@/types/project";
+import type { User } from "@/types/api";
 import type { Column } from "../data-table";
 import { formatDate, renderBadge } from "../data-table";
 

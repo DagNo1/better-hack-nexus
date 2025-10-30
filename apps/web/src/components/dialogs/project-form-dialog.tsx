@@ -15,7 +15,7 @@ import { Label } from "@workspace/ui/components/label";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import type { Project, ProjectFormData } from "@/types/project";
+import type { Project, ProjectFormData } from "@/types/api";
 
 // Form validation schema
 const projectFormSchema = z.object({
