@@ -1,5 +1,4 @@
-import prisma from "@/db";
-
+import prisma from "../../db";
 import { createAccessControl } from "better-auth-zanzibar-plugin";
 
 const resources = {

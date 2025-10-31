@@ -1,4 +1,4 @@
-import prisma from "@/db";
+import prisma from "../../db";
 import { betterAuth, type BetterAuthOptions } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { ZanzibarPlugin } from "better-auth-zanzibar-plugin";

@@ -22,7 +22,7 @@ export function CanAccess({
   useEffect(() => {
     const checkPermission = async () => {
       setLoading(true);
-      const result = await authClient.zanzibar.check({
+      const result = await authClient.zanzibar.hasPermission({
         resourceType,
         resourceId,
         action,

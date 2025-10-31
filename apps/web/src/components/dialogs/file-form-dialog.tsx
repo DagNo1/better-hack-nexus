@@ -27,8 +27,8 @@ const fileFormSchema = z.object({
     .trim(),
   content: z.string().default(""),
 });
-
-type FileFormData = z.infer<typeof fileFormSchema>;
+type FileFormInput = z.input<typeof fileFormSchema>;
+type FileFormOutput = z.output<typeof fileFormSchema>;
 
 interface FileFormDialogProps {
   mode: "create" | "edit";
@@ -48,7 +48,7 @@ export function FileFormDialog({
   const createFile = useCreateFile();
   const updateFile = useUpdateFile();
 
-  const form = useForm<FileFormData>({
+  const form = useForm<FileFormInput, any, FileFormOutput>({
     resolver: zodResolver(fileFormSchema),
     defaultValues: {
       name: "",
@@ -65,7 +65,7 @@ export function FileFormDialog({
     }
   }, [mode, file, open, form]);
 
-  const handleSubmit = async (data: FileFormData) => {
+  const handleSubmit = async (data: FileFormOutput) => {
     try {
       if (mode === "create") {
         if (!folderId) {

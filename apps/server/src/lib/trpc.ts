@@ -1,6 +1,5 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import type { Context } from "./context";
-import { ac, acRoles } from "./auth/rebac";
 import { auth } from "./auth/auth";
 
 export const t = initTRPC.context<Context>().create();
@@ -41,9 +40,6 @@ export const withPermission = (
     }
     const { resource, action, resourceId } = derive({ input, ctx });
 
-    console.log("Derived: \n", resource, "\n", action, "\n", resourceId);
-    // Call better-auth Zanzibar endpoint; user is taken from session
-
     const response: {
       allowed: boolean;
       message: string;
@@ -54,7 +50,7 @@ export const withPermission = (
         body: {
           action: action as string,
           resourceType: resource as string,
-          resourceId: (resourceId ?? "") as string,
+          resourceId: resourceId,
         },
       });
 
@@ -82,16 +78,21 @@ export const withRole = (
       });
     }
     const { resource, role, resourceId } = derive({ input, ctx });
-    const has = await acRoles.hasRole(
-      resource as any,
-      role as any,
-      ctx.session.user.id,
-      resourceId as any
-    );
-    if (!has) {
+    const response: { allowed: boolean; message: string } =
+      // @ts-ignore - endpoint provided by Zanzibar plugin
+      await auth.api.hasRole({
+        headers: ctx.headers,
+        body: {
+          role: role as string,
+          resourceType: resource as string,
+          resourceId: resourceId,
+        },
+      });
+
+    if (!response.allowed) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: "Required role missing",
+        message: "Insufficient role: " + response.message,
       });
     }
     return next();

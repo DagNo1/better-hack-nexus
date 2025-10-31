@@ -3,8 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 // Query hooks
-export const useGetUsers = () =>
-  useQuery(trpc.user.getAll.queryOptions());
+export const useGetUsers = () => useQuery(trpc.user.getAll.queryOptions());
 
 export const useGetUserById = (id: string) =>
   useQuery(trpc.user.getById.queryOptions({ id }));
@@ -15,7 +14,7 @@ export const useGetUserByEmail = (email: string) =>
 export const useCreateTestUser = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    ...trpc.user.createTestUser.mutationOptions(),
+    ...trpc.user.create.mutationOptions(),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: trpc.user.getAll.queryKey(),
