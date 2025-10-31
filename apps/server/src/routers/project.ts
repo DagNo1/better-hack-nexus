@@ -1,10 +1,15 @@
 import { TRPCError } from "@trpc/server";
 import z from "zod";
 import prisma from "../db";
-import { protectedProcedure, publicProcedure, router } from "../lib/trpc";
+import {
+  protectedProcedure,
+  publicProcedure,
+  router,
+  withPermission,
+} from "../lib/trpc";
 
 export const projectRouter = router({
-  getAll: protectedProcedure().query(async () => {
+  getAll: protectedProcedure.query(async () => {
     return await prisma.project.findMany({
       orderBy: {
         createdAt: "asc",
@@ -19,12 +24,15 @@ export const projectRouter = router({
     });
   }),
 
-  getById: protectedProcedure({
-    resource: "project",
-    action: "read",
-    field: "id",
-  })
+  getById: protectedProcedure
     .input(z.object({ id: z.string() }))
+    .use(
+      withPermission(({ input }) => ({
+        resource: "project",
+        action: "read",
+        resourceId: input.id,
+      }))
+    )
     .query(async ({ input }) => {
       try {
         return await prisma.project.findUnique({
@@ -49,7 +57,7 @@ export const projectRouter = router({
       }
     }),
 
-  create: protectedProcedure()
+  create: protectedProcedure
     .input(z.object({ name: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
       const ownerId = ctx.session?.user?.id;
@@ -80,12 +88,15 @@ export const projectRouter = router({
       return project;
     }),
 
-  update: protectedProcedure({
-    resource: "project",
-    action: "edit",
-    field: "id",
-  })
+  update: protectedProcedure
     .input(z.object({ id: z.string(), name: z.string().min(1) }))
+    .use(
+      withPermission(({ input }) => ({
+        resource: "project",
+        action: "edit",
+        resourceId: input.id,
+      }))
+    )
     .mutation(async ({ input }) => {
       try {
         return await prisma.project.update({
@@ -100,12 +111,15 @@ export const projectRouter = router({
       }
     }),
 
-  delete: protectedProcedure({
-    resource: "project",
-    action: "delete",
-    field: "id",
-  })
+  delete: protectedProcedure
     .input(z.object({ id: z.string() }))
+    .use(
+      withPermission(({ input }) => ({
+        resource: "project",
+        action: "delete",
+        resourceId: input.id,
+      }))
+    )
     .mutation(async ({ input }) => {
       try {
         return await prisma.project.delete({
@@ -119,17 +133,20 @@ export const projectRouter = router({
       }
     }),
 
-  addMember: protectedProcedure({
-    resource: "project",
-    action: "manage-members",
-    field: "projectId",
-  })
+  addMember: protectedProcedure
     .input(
       z.object({
         projectId: z.string(),
         userId: z.string(),
         role: z.string().default("viewer"),
       })
+    )
+    .use(
+      withPermission(({ input }) => ({
+        resource: "project",
+        action: "manage-members",
+        resourceId: input.projectId,
+      }))
     )
     .mutation(async ({ input }) => {
       try {
@@ -183,16 +200,19 @@ export const projectRouter = router({
       }
     }),
 
-  removeMember: protectedProcedure({
-    resource: "project",
-    action: "manage-members",
-    field: "projectId",
-  })
+  removeMember: protectedProcedure
     .input(
       z.object({
         projectId: z.string(),
         userId: z.string(),
       })
+    )
+    .use(
+      withPermission(({ input }) => ({
+        resource: "project",
+        action: "manage-members",
+        resourceId: input.projectId,
+      }))
     )
     .mutation(async ({ input }) => {
       try {
@@ -214,12 +234,15 @@ export const projectRouter = router({
       }
     }),
 
-  getMembers: protectedProcedure({
-    resource: "project",
-    action: "read",
-    field: "projectId",
-  })
+  getMembers: protectedProcedure
     .input(z.object({ projectId: z.string() }))
+    .use(
+      withPermission(({ input }) => ({
+        resource: "project",
+        action: "read",
+        resourceId: input.projectId,
+      }))
+    )
     .query(async ({ input }) => {
       const project = await prisma.project.findUnique({
         where: { id: input.projectId },

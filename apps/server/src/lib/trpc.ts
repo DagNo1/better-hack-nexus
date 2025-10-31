@@ -1,86 +1,98 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import type { Context } from "./context";
-import { hasPermission } from "better-auth-zanzibar-plugin";
+import { ac, acRoles } from "./auth/rebac";
+import { auth } from "./auth/auth";
 
 export const t = initTRPC.context<Context>().create();
+
 export const router = t.router;
-export const middleware = t.middleware;
+
 export const publicProcedure = t.procedure;
 
-function getNestedValue(obj: any, path: string): any {
-  return path.split(".").reduce((current, key) => current?.[key], obj);
-}
+export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
+  if (!ctx.session) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "Authentication required",
+      cause: "No session",
+    });
+  }
+  return next({
+    ctx: {
+      ...ctx,
+      session: ctx.session,
+    },
+  });
+});
 
-/**
- * Protected procedure - authentication + optional permissions
- * @example protectedProcedure() // auth only
- * @example protectedProcedure({ resource: "folder", action: "read" }) // + permission
- * @example protectedProcedure({ resource: "project", action: "edit", field: "projectId" }) // custom field
- */
-export const protectedProcedure = (
-  options?:
-    | {
-        resource: string;
-        action: string;
-        field?: string;
-      }
-    | ((args: { ctx: Context; input: any }) => {
-        resource: string;
-        action: string;
-        field?: string;
-      })
-) => {
-  return t.procedure.use(async ({ ctx, input, next }) => {
+export const withPermission = (
+  derive: (opts: { input: any; ctx: Context }) => {
+    resource: "project" | "folder" | "file" | "user";
+    action: string;
+    resourceId?: string;
+  }
+) =>
+  t.middleware(async ({ ctx, input, next }) => {
     if (!ctx.session) {
       throw new TRPCError({
         code: "UNAUTHORIZED",
-        message: "You must be logged in to access this resource",
+        message: "Authentication required",
       });
     }
+    const { resource, action, resourceId } = derive({ input, ctx });
 
-    if (!options) {
-      return next({
-        ctx: {
-          ...ctx,
-          session: ctx.session,
-          user: ctx.session.user,
+    console.log("Derived: \n", resource, "\n", action, "\n", resourceId);
+    // Call better-auth Zanzibar endpoint; user is taken from session
+
+    const response: {
+      allowed: boolean;
+      message: string;
+    } =
+      // @ts-ignore - endpoint provided by Zanzibar plugin
+      await auth.api.hasPermission({
+        headers: ctx.headers,
+        body: {
+          action: action as string,
+          resourceType: resource as string,
+          resourceId: (resourceId ?? "") as string,
         },
       });
-    }
 
-    const opts =
-      typeof options === "function" ? options({ ctx, input }) : options;
-    const field = opts.field || "id";
-    const resourceId = getNestedValue(input, field);
-
-    if (!resourceId) {
-      throw new TRPCError({
-        code: "BAD_REQUEST",
-        message: `Resource ID is required at field: ${field}`,
-      });
-    }
-
-    const allowed = await hasPermission(
-      ctx.session.user.id,
-      opts.action as any,
-      opts.resource as any,
-      resourceId
-    );
-
-    if (!allowed) {
+    if (!response.allowed) {
       throw new TRPCError({
         code: "FORBIDDEN",
-        message: `You do not have permission to ${opts.action} this ${opts.resource}`,
+        message: "Insufficient permissions: " + response.message,
       });
     }
-
-    return next({
-      ctx: {
-        ...ctx,
-        session: ctx.session,
-        user: ctx.session.user,
-        resourceId,
-      },
-    });
+    return next();
   });
-};
+
+export const withRole = (
+  derive: (opts: { input: any; ctx: Context }) => {
+    resource: "project" | "folder" | "file" | "user";
+    role: string;
+    resourceId?: string;
+  }
+) =>
+  t.middleware(async ({ ctx, input, next }) => {
+    if (!ctx.session) {
+      throw new TRPCError({
+        code: "UNAUTHORIZED",
+        message: "Authentication required",
+      });
+    }
+    const { resource, role, resourceId } = derive({ input, ctx });
+    const has = await acRoles.hasRole(
+      resource as any,
+      role as any,
+      ctx.session.user.id,
+      resourceId as any
+    );
+    if (!has) {
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: "Required role missing",
+      });
+    }
+    return next();
+  });

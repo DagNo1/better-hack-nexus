@@ -1,10 +1,10 @@
 import { TRPCError } from "@trpc/server";
 import z from "zod";
 import prisma from "../db";
-import { protectedProcedure, router } from "../lib/trpc";
+import { protectedProcedure, router, withPermission } from "../lib/trpc";
 
 export const fileRouter = router({
-  getAll: protectedProcedure().query(async () => {
+  getAll: protectedProcedure.query(async () => {
     return await prisma.file.findMany({
       orderBy: {
         createdAt: "asc",
@@ -15,12 +15,15 @@ export const fileRouter = router({
     });
   }),
 
-  getById: protectedProcedure({
-    resource: "file",
-    action: "read",
-    field: "id",
-  })
+  getById: protectedProcedure
     .input(z.object({ id: z.string() }))
+    .use(
+      withPermission(({ input }) => ({
+        resource: "file",
+        action: "read",
+        resourceId: input.id,
+      }))
+    )
     .query(async ({ input }) => {
       try {
         return await prisma.file.findUnique({
@@ -37,12 +40,15 @@ export const fileRouter = router({
       }
     }),
 
-  getByFolder: protectedProcedure({
-    resource: "folder",
-    action: "read",
-    field: "folderId",
-  })
+  getByFolder: protectedProcedure
     .input(z.object({ folderId: z.string() }))
+    .use(
+      withPermission(({ input }) => ({
+        resource: "folder",
+        action: "read",
+        resourceId: input.folderId,
+      }))
+    )
     .query(async ({ input }) => {
       return await prisma.file.findMany({
         where: { folderId: input.folderId },
@@ -55,11 +61,7 @@ export const fileRouter = router({
       });
     }),
 
-  create: protectedProcedure({
-    resource: "folder",
-    action: "edit",
-    field: "folderId",
-  })
+  create: protectedProcedure
     .input(
       z.object({
         name: z
@@ -69,6 +71,13 @@ export const fileRouter = router({
         content: z.string().default(""),
         folderId: z.string().min(1, "Folder ID is required"),
       })
+    )
+    .use(
+      withPermission(({ input }) => ({
+        resource: "folder",
+        action: "edit",
+        resourceId: input.folderId,
+      }))
     )
     .mutation(async ({ input }) => {
       // Check if folder exists
@@ -107,11 +116,7 @@ export const fileRouter = router({
       });
     }),
 
-  update: protectedProcedure({
-    resource: "file",
-    action: "edit",
-    field: "id",
-  })
+  update: protectedProcedure
     .input(
       z.object({
         id: z.string(),
@@ -119,6 +124,13 @@ export const fileRouter = router({
         content: z.string().optional(),
         folderId: z.string().optional(),
       })
+    )
+    .use(
+      withPermission(({ input }) => ({
+        resource: "file",
+        action: "edit",
+        resourceId: input.id,
+      }))
     )
     .mutation(async ({ input }) => {
       try {
@@ -151,12 +163,15 @@ export const fileRouter = router({
       }
     }),
 
-  delete: protectedProcedure({
-    resource: "file",
-    action: "delete",
-    field: "id",
-  })
+  delete: protectedProcedure
     .input(z.object({ id: z.string() }))
+    .use(
+      withPermission(({ input }) => ({
+        resource: "file",
+        action: "delete",
+        resourceId: input.id,
+      }))
+    )
     .mutation(async ({ input }) => {
       try {
         return await prisma.file.delete({

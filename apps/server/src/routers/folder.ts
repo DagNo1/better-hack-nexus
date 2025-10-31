@@ -1,10 +1,10 @@
 import { TRPCError } from "@trpc/server";
 import z from "zod";
 import prisma from "../db";
-import { protectedProcedure, router } from "../lib/trpc";
+import { protectedProcedure, router, withPermission } from "../lib/trpc";
 
 export const folderRouter = router({
-  getAll: protectedProcedure().query(async () => {
+  getAll: protectedProcedure.query(async () => {
     return await prisma.folder.findMany({
       orderBy: {
         createdAt: "asc",
@@ -15,12 +15,15 @@ export const folderRouter = router({
     });
   }),
 
-  getById: protectedProcedure({
-    resource: "folder",
-    action: "read",
-    field: "id",
-  })
+  getById: protectedProcedure
     .input(z.object({ id: z.string() }))
+    .use(
+      withPermission(({ input }) => ({
+        resource: "folder",
+        action: "read",
+        resourceId: input.id,
+      }))
+    )
     .query(async ({ input }) => {
       try {
         return await prisma.folder.findUnique({
@@ -37,12 +40,15 @@ export const folderRouter = router({
       }
     }),
 
-  getByProject: protectedProcedure({
-    resource: "project",
-    action: "read",
-    field: "projectId",
-  })
+  getByProject: protectedProcedure
     .input(z.object({ projectId: z.string() }))
+    .use(
+      withPermission(({ input }) => ({
+        resource: "project",
+        action: "read",
+        resourceId: input.projectId,
+      }))
+    )
     .query(async ({ input }) => {
       return await prisma.folder.findMany({
         where: { projectId: input.projectId },
@@ -55,12 +61,15 @@ export const folderRouter = router({
       });
     }),
 
-  getByParent: protectedProcedure({
-    resource: "folder",
-    action: "read",
-    field: "parentId",
-  })
+  getByParent: protectedProcedure
     .input(z.object({ parentId: z.string() }))
+    .use(
+      withPermission(({ input }) => ({
+        resource: "folder",
+        action: "read",
+        resourceId: input.parentId,
+      }))
+    )
     .query(async ({ input }) => {
       return await prisma.folder.findMany({
         where: { parentId: input.parentId },
@@ -73,12 +82,15 @@ export const folderRouter = router({
       });
     }),
 
-  getPath: protectedProcedure({
-    resource: "folder",
-    action: "read",
-    field: "folderId",
-  })
+  getPath: protectedProcedure
     .input(z.object({ folderId: z.string() }))
+    .use(
+      withPermission(({ input }) => ({
+        resource: "folder",
+        action: "read",
+        resourceId: input.folderId,
+      }))
+    )
     .query(async ({ input }) => {
       const path: Array<{
         id: string;
@@ -127,11 +139,7 @@ export const folderRouter = router({
       return path;
     }),
 
-  create: protectedProcedure(({ input }) => ({
-    resource: input.parentId ? "folder" : "project",
-    action: "edit",
-    field: input.parentId ? "parentId" : "projectId",
-  }))
+  create: protectedProcedure
     .input(
       z.object({
         name: z
@@ -141,6 +149,13 @@ export const folderRouter = router({
         projectId: z.string().optional(),
         parentId: z.string().optional(),
       })
+    )
+    .use(
+      withPermission(({ input }) => ({
+        resource: input.parentId ? "folder" : "project",
+        action: "edit",
+        resourceId: input.parentId ?? (input.projectId as string),
+      }))
     )
     .mutation(async ({ input }) => {
       // Check if project exists if projectId is provided
@@ -196,11 +211,7 @@ export const folderRouter = router({
       });
     }),
 
-  update: protectedProcedure({
-    resource: "folder",
-    action: "edit",
-    field: "id",
-  })
+  update: protectedProcedure
     .input(
       z.object({
         id: z.string(),
@@ -208,6 +219,13 @@ export const folderRouter = router({
         projectId: z.string().optional(),
         parentId: z.string().optional(),
       })
+    )
+    .use(
+      withPermission(({ input }) => ({
+        resource: "folder",
+        action: "edit",
+        resourceId: input.id,
+      }))
     )
     .mutation(async ({ input }) => {
       try {
@@ -225,12 +243,15 @@ export const folderRouter = router({
       }
     }),
 
-  delete: protectedProcedure({
-    resource: "folder",
-    action: "delete",
-    field: "id",
-  })
+  delete: protectedProcedure
     .input(z.object({ id: z.string() }))
+    .use(
+      withPermission(({ input }) => ({
+        resource: "folder",
+        action: "delete",
+        resourceId: input.id,
+      }))
+    )
     .mutation(async ({ input }) => {
       try {
         return await prisma.folder.delete({

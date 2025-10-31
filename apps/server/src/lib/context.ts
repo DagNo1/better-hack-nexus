@@ -10,6 +10,7 @@ export async function createContext({ context }: CreateContextOptions) {
     headers: context.request.headers,
   });
   return {
+    headers: context.request.headers,
     session,
   };
 }

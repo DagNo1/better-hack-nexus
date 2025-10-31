@@ -2,10 +2,15 @@ import { TRPCError } from "@trpc/server";
 import z from "zod";
 import prisma from "../db";
 import { auth } from "../lib/auth/auth";
-import { protectedProcedure, publicProcedure, router } from "../lib/trpc";
+import {
+  protectedProcedure,
+  publicProcedure,
+  router,
+  withPermission,
+} from "../lib/trpc";
 
 export const userRouter = router({
-  getAll: protectedProcedure().query(async () => {
+  getAll: protectedProcedure.query(async () => {
     return await prisma.user.findMany({
       select: {
         id: true,
@@ -23,12 +28,15 @@ export const userRouter = router({
     });
   }),
 
-  getById: protectedProcedure({
-    resource: "user",
-    action: "read",
-    field: "id",
-  })
+  getById: protectedProcedure
     .input(z.object({ id: z.string() }))
+    .use(
+      withPermission(({ input }) => ({
+        resource: "user",
+        action: "read",
+        resourceId: input.id,
+      }))
+    )
     .query(async ({ input }) => {
       try {
         return await prisma.user.findUnique({
@@ -164,11 +172,7 @@ export const userRouter = router({
       }
     }),
 
-  update: protectedProcedure({
-    resource: "user",
-    action: "edit",
-    field: "id",
-  })
+  update: protectedProcedure
     .input(
       z.object({
         id: z.string(),
@@ -177,6 +181,13 @@ export const userRouter = router({
         emailVerified: z.boolean().optional(),
         image: z.string().optional(),
       })
+    )
+    .use(
+      withPermission(({ input }) => ({
+        resource: "user",
+        action: "edit",
+        resourceId: input.id,
+      }))
     )
     .mutation(async ({ input }) => {
       const { id, ...updateData } = input;
@@ -215,12 +226,15 @@ export const userRouter = router({
       }
     }),
 
-  delete: protectedProcedure({
-    resource: "user",
-    action: "delete",
-    field: "id",
-  })
+  delete: protectedProcedure
     .input(z.object({ id: z.string() }))
+    .use(
+      withPermission(({ input }) => ({
+        resource: "user",
+        action: "delete",
+        resourceId: input.id,
+      }))
+    )
     .mutation(async ({ input }) => {
       try {
         return await prisma.user.delete({
