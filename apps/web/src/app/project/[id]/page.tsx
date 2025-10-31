@@ -11,6 +11,7 @@ import {
 import { FoldersTable } from "@/layouts/tables/folders-table";
 import { ProjectMembersTable } from "@/layouts/tables/project-members-table";
 import type { ProjectFormData } from "@/types/project";
+import { UserButton } from "@daveyplate/better-auth-ui";
 import { Button } from "@workspace/ui/components/button";
 import { format } from "date-fns";
 import { ArrowLeft, Loader2 } from "lucide-react";
@@ -79,6 +80,7 @@ export default function ProjectDetailPage() {
       {/* Header */}
       <header className="border-b">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <UserButton className="bg-background text-white hover:bg-primary/10" />
           <div className="flex items-center gap-4">
             <BackButton />
             <h1 className="text-2xl font-bold">{project.name}</h1>

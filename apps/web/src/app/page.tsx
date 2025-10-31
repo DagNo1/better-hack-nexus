@@ -6,6 +6,7 @@ import {
   RedirectToSignIn,
   SignedIn,
   SignedOut,
+  UserButton,
 } from "@daveyplate/better-auth-ui";
 
 export default function Home() {
@@ -19,7 +20,7 @@ export default function Home() {
           {/* Header */}
           <header className="border-b">
             <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-              {/* <UserButton className="bg-background text-white hover:bg-primary/10" /> */}
+              <UserButton className="bg-background text-white hover:bg-primary/10" />
               <h1 className="text-2xl font-bold">Better Hack Nexus</h1>
               <p className="text-sm text-muted-foreground">
                 A Demo app for showing how the Google Zanzibar ReBAC works
