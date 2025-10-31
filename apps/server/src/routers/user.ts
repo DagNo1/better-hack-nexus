@@ -5,7 +5,7 @@ import { auth } from "../lib/auth/auth";
 import { protectedProcedure, publicProcedure, router } from "../lib/trpc";
 
 export const userRouter = router({
-  getAll: protectedProcedure.query(async () => {
+  getAll: protectedProcedure().query(async () => {
     return await prisma.user.findMany({
       select: {
         id: true,
@@ -23,7 +23,11 @@ export const userRouter = router({
     });
   }),
 
-  getById: protectedProcedure
+  getById: protectedProcedure({
+    resource: "user",
+    action: "read",
+    field: "id",
+  })
     .input(z.object({ id: z.string() }))
     .query(async ({ input }) => {
       try {
@@ -160,50 +164,11 @@ export const userRouter = router({
       }
     }),
 
-  // Create a test user for development purposes
-  createTestUser: publicProcedure
-    .input(
-      z.object({
-        email: z.string().email("Invalid email address"),
-      })
-    )
-    .mutation(async ({ input }) => {
-      try {
-        // Check if user already exists
-        const existingUser = await prisma.user.findUnique({
-          where: { email: input.email },
-        });
-
-        if (existingUser) {
-          return existingUser;
-        }
-
-        // Create a test user with the email
-        return await prisma.user.create({
-          data: {
-            name: input.email.split("@")[0], // Use email prefix as name
-            email: input.email,
-            emailVerified: true,
-          },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            emailVerified: true,
-            image: true,
-            createdAt: true,
-            updatedAt: true,
-          },
-        });
-      } catch (error: any) {
-        throw new TRPCError({
-          code: "INTERNAL_SERVER_ERROR",
-          message: "Failed to create test user",
-        });
-      }
-    }),
-
-  update: protectedProcedure
+  update: protectedProcedure({
+    resource: "user",
+    action: "edit",
+    field: "id",
+  })
     .input(
       z.object({
         id: z.string(),
@@ -250,7 +215,11 @@ export const userRouter = router({
       }
     }),
 
-  delete: protectedProcedure
+  delete: protectedProcedure({
+    resource: "user",
+    action: "delete",
+    field: "id",
+  })
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
       try {

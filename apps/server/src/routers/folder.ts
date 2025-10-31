@@ -1,10 +1,10 @@
 import { TRPCError } from "@trpc/server";
 import z from "zod";
 import prisma from "../db";
-import { publicProcedure, router } from "../lib/trpc";
+import { protectedProcedure, router } from "../lib/trpc";
 
 export const folderRouter = router({
-  getAll: publicProcedure.query(async () => {
+  getAll: protectedProcedure().query(async () => {
     return await prisma.folder.findMany({
       orderBy: {
         createdAt: "asc",
@@ -15,7 +15,11 @@ export const folderRouter = router({
     });
   }),
 
-  getById: publicProcedure
+  getById: protectedProcedure({
+    resource: "folder",
+    action: "read",
+    field: "id",
+  })
     .input(z.object({ id: z.string() }))
     .query(async ({ input }) => {
       try {
@@ -33,7 +37,11 @@ export const folderRouter = router({
       }
     }),
 
-  getByProject: publicProcedure
+  getByProject: protectedProcedure({
+    resource: "project",
+    action: "read",
+    field: "projectId",
+  })
     .input(z.object({ projectId: z.string() }))
     .query(async ({ input }) => {
       return await prisma.folder.findMany({
@@ -47,7 +55,11 @@ export const folderRouter = router({
       });
     }),
 
-  getByParent: publicProcedure
+  getByParent: protectedProcedure({
+    resource: "folder",
+    action: "read",
+    field: "parentId",
+  })
     .input(z.object({ parentId: z.string() }))
     .query(async ({ input }) => {
       return await prisma.folder.findMany({
@@ -61,7 +73,11 @@ export const folderRouter = router({
       });
     }),
 
-  getPath: publicProcedure
+  getPath: protectedProcedure({
+    resource: "folder",
+    action: "read",
+    field: "folderId",
+  })
     .input(z.object({ folderId: z.string() }))
     .query(async ({ input }) => {
       const path: Array<{
@@ -111,7 +127,11 @@ export const folderRouter = router({
       return path;
     }),
 
-  create: publicProcedure
+  create: protectedProcedure(({ input }) => ({
+    resource: input.parentId ? "folder" : "project",
+    action: "edit",
+    field: input.parentId ? "parentId" : "projectId",
+  }))
     .input(
       z.object({
         name: z
@@ -176,7 +196,11 @@ export const folderRouter = router({
       });
     }),
 
-  update: publicProcedure
+  update: protectedProcedure({
+    resource: "folder",
+    action: "edit",
+    field: "id",
+  })
     .input(
       z.object({
         id: z.string(),
@@ -201,7 +225,11 @@ export const folderRouter = router({
       }
     }),
 
-  delete: publicProcedure
+  delete: protectedProcedure({
+    resource: "folder",
+    action: "delete",
+    field: "id",
+  })
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
       try {

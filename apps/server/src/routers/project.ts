@@ -4,7 +4,7 @@ import prisma from "../db";
 import { protectedProcedure, publicProcedure, router } from "../lib/trpc";
 
 export const projectRouter = router({
-  getAll: publicProcedure.query(async () => {
+  getAll: protectedProcedure().query(async () => {
     return await prisma.project.findMany({
       orderBy: {
         createdAt: "asc",
@@ -19,7 +19,11 @@ export const projectRouter = router({
     });
   }),
 
-  getById: publicProcedure
+  getById: protectedProcedure({
+    resource: "project",
+    action: "read",
+    field: "id",
+  })
     .input(z.object({ id: z.string() }))
     .query(async ({ input }) => {
       try {
@@ -45,7 +49,7 @@ export const projectRouter = router({
       }
     }),
 
-  create: protectedProcedure
+  create: protectedProcedure()
     .input(z.object({ name: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
       const ownerId = ctx.session?.user?.id;
@@ -76,7 +80,11 @@ export const projectRouter = router({
       return project;
     }),
 
-  update: publicProcedure
+  update: protectedProcedure({
+    resource: "project",
+    action: "edit",
+    field: "id",
+  })
     .input(z.object({ id: z.string(), name: z.string().min(1) }))
     .mutation(async ({ input }) => {
       try {
@@ -92,7 +100,11 @@ export const projectRouter = router({
       }
     }),
 
-  delete: publicProcedure
+  delete: protectedProcedure({
+    resource: "project",
+    action: "delete",
+    field: "id",
+  })
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
       try {
@@ -107,7 +119,11 @@ export const projectRouter = router({
       }
     }),
 
-  addMember: publicProcedure
+  addMember: protectedProcedure({
+    resource: "project",
+    action: "manage-members",
+    field: "projectId",
+  })
     .input(
       z.object({
         projectId: z.string(),
@@ -167,7 +183,11 @@ export const projectRouter = router({
       }
     }),
 
-  removeMember: publicProcedure
+  removeMember: protectedProcedure({
+    resource: "project",
+    action: "manage-members",
+    field: "projectId",
+  })
     .input(
       z.object({
         projectId: z.string(),
@@ -194,7 +214,11 @@ export const projectRouter = router({
       }
     }),
 
-  getMembers: publicProcedure
+  getMembers: protectedProcedure({
+    resource: "project",
+    action: "read",
+    field: "projectId",
+  })
     .input(z.object({ projectId: z.string() }))
     .query(async ({ input }) => {
       const project = await prisma.project.findUnique({

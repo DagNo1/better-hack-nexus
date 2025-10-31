@@ -1,10 +1,10 @@
 import { TRPCError } from "@trpc/server";
 import z from "zod";
 import prisma from "../db";
-import { publicProcedure, router } from "../lib/trpc";
+import { protectedProcedure, router } from "../lib/trpc";
 
 export const fileRouter = router({
-  getAll: publicProcedure.query(async () => {
+  getAll: protectedProcedure().query(async () => {
     return await prisma.file.findMany({
       orderBy: {
         createdAt: "asc",
@@ -15,7 +15,11 @@ export const fileRouter = router({
     });
   }),
 
-  getById: publicProcedure
+  getById: protectedProcedure({
+    resource: "file",
+    action: "read",
+    field: "id",
+  })
     .input(z.object({ id: z.string() }))
     .query(async ({ input }) => {
       try {
@@ -33,7 +37,11 @@ export const fileRouter = router({
       }
     }),
 
-  getByFolder: publicProcedure
+  getByFolder: protectedProcedure({
+    resource: "folder",
+    action: "read",
+    field: "folderId",
+  })
     .input(z.object({ folderId: z.string() }))
     .query(async ({ input }) => {
       return await prisma.file.findMany({
@@ -47,7 +55,11 @@ export const fileRouter = router({
       });
     }),
 
-  create: publicProcedure
+  create: protectedProcedure({
+    resource: "folder",
+    action: "edit",
+    field: "folderId",
+  })
     .input(
       z.object({
         name: z
@@ -95,7 +107,11 @@ export const fileRouter = router({
       });
     }),
 
-  update: publicProcedure
+  update: protectedProcedure({
+    resource: "file",
+    action: "edit",
+    field: "id",
+  })
     .input(
       z.object({
         id: z.string(),
@@ -135,7 +151,11 @@ export const fileRouter = router({
       }
     }),
 
-  delete: publicProcedure
+  delete: protectedProcedure({
+    resource: "file",
+    action: "delete",
+    field: "id",
+  })
     .input(z.object({ id: z.string() }))
     .mutation(async ({ input }) => {
       try {

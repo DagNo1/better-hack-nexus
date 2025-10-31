@@ -165,7 +165,6 @@ export function ProjectsTable() {
         description: "Get started by creating your first project",
       }}
       getRowKey={(project) => project.id}
-      onRowClick={handleViewProject}
     >
       <ProjectFormDialog
         mode={formMode}

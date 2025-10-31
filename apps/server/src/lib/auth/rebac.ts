@@ -6,12 +6,12 @@ const resources = {
   project: ["delete", "read", "edit", "share", "manage-members"],
   folder: ["delete", "read", "edit", "share", "view"],
   file: ["delete", "read", "edit", "share"],
-  user: ["create", "delete", "read"],
+  user: ["create", "delete", "read", "edit"],
 } as const;
 
-const ac = createAccessControl(resources);
+export const ac = createAccessControl(resources);
 
-const acRoles = ac.resourceRoles({
+export const acRoles = ac.resourceRoles({
   project: [
     {
       name: "owner",
@@ -31,12 +31,12 @@ const acRoles = ac.resourceRoles({
     { name: "viewer", actions: ["read"] },
   ],
   user: [
-    { name: "admin", actions: ["create", "delete", "read"] },
-    { name: "self", actions: ["read"] },
+    { name: "admin", actions: ["create", "delete", "read", "edit"] },
+    { name: "self", actions: ["read", "edit"] },
   ],
 } as const);
 
-const policies = acRoles.roleConditions({
+export const policies = acRoles.roleConditions({
   project: {
     owner: async (userId: string, resourceId: string) => {
       const project = await prisma.project.findFirst({
@@ -205,13 +205,14 @@ const policies = acRoles.roleConditions({
     },
   },
   user: {
-    admin: async (userId: string, resourceId: string) => {
+    admin: async (userId: string, _resourceId?: string) => {
       const user = await prisma.user.findFirst({
         where: { id: userId, role: "admin" },
       });
       return !!user;
     },
     self: async (userId: string, resourceId: string) => {
+      if (userId !== resourceId) return false;
       const user = await prisma.user.findFirst({
         where: { id: userId },
       });

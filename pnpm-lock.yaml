@@ -39,8 +39,8 @@ importers:
         specifier: ^1.3.13
         version: 1.3.28(better-sqlite3@12.4.1)(next@15.3.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       better-auth-zanzibar-plugin:
-        specifier: ^0.1.2
-        version: 0.1.2(better-auth@1.3.28(better-sqlite3@12.4.1))(node-cache@5.1.2)(zod@4.1.12)
+        specifier: ^0.1.3
+        version: 0.1.3(better-auth@1.3.28(better-sqlite3@12.4.1))(node-cache@5.1.2)(zod@4.1.12)
       dotenv:
         specifier: ^17.2.1
         version: 17.2.3
@@ -118,8 +118,8 @@ importers:
         specifier: ^1.3.13
         version: 1.3.28(better-sqlite3@12.4.1)(next@15.5.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       better-auth-zanzibar-plugin:
-        specifier: ^0.1.2
-        version: 0.1.2(better-auth@1.3.28(better-sqlite3@12.4.1)(next@15.5.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(node-cache@5.1.2)(zod@4.1.12)
+        specifier: ^0.1.3
+        version: 0.1.3(better-auth@1.3.28(better-sqlite3@12.4.1)(next@15.5.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(node-cache@5.1.2)(zod@4.1.12)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -2820,8 +2820,8 @@ packages:
   bcrypt-pbkdf@1.0.2:
     resolution: {integrity: sha512-qeFIXtP4MSoi6NLqO12WfqARWWuCKi2Rn/9hJLEmtB5yTNr9DqFWkJRCf2qShWzPeAMRnOgCrq0sg/KLv5ES9w==}
 
-  better-auth-zanzibar-plugin@0.1.2:
-    resolution: {integrity: sha512-ICVO8eZJceWTFD5Rl2FrFr2l+gqXsjOBh92VlnofHyNxPERtiib+WGmly4WmLAsDOrCIcHP+IJCHUvqsbviNGQ==}
+  better-auth-zanzibar-plugin@0.1.3:
+    resolution: {integrity: sha512-adaDjzYdK0Dw0XnKQCwzwesTnrBvtdxmGnTU9R1d6m0oZtz2rNnl4vHKDmlJjSvbR3Hdkwex3TF8ILgj/c27xQ==}
     engines: {node: '>=18'}
     peerDependencies:
       better-auth: '*'
@@ -9108,13 +9108,13 @@ snapshots:
     dependencies:
       tweetnacl: 0.14.5
 
-  better-auth-zanzibar-plugin@0.1.2(better-auth@1.3.28(better-sqlite3@12.4.1)(next@15.5.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(node-cache@5.1.2)(zod@4.1.12):
+  better-auth-zanzibar-plugin@0.1.3(better-auth@1.3.28(better-sqlite3@12.4.1)(next@15.5.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(node-cache@5.1.2)(zod@4.1.12):
     dependencies:
       better-auth: 1.3.28(better-sqlite3@12.4.1)(next@15.5.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       node-cache: 5.1.2
       zod: 4.1.12
 
-  better-auth-zanzibar-plugin@0.1.2(better-auth@1.3.28(better-sqlite3@12.4.1))(node-cache@5.1.2)(zod@4.1.12):
+  better-auth-zanzibar-plugin@0.1.3(better-auth@1.3.28(better-sqlite3@12.4.1))(node-cache@5.1.2)(zod@4.1.12):
     dependencies:
       better-auth: 1.3.28(better-sqlite3@12.4.1)
       node-cache: 5.1.2
